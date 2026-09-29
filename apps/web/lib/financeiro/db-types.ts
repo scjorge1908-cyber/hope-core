@@ -122,6 +122,14 @@ export type DuplicateBillingRow = {
   gloss_value: Num
 }
 
+export type LegacySyncStatusRow = {
+  spreadsheet_id: string
+  nome: string | null
+  total_linhas: Num
+  ultima_sincronizacao: string | null
+  ultimo_erro: string | null
+}
+
 export type FinanceDatabase = {
   __InternalSupabase: { PostgrestVersion: '14.5' }
   public: {
@@ -150,6 +158,9 @@ export type FinanceDatabase = {
       import_claim_statement: { Args: { p: Json }; Returns: Json }
       claim_gloss_details: { Args: { p_plan_id?: string }; Returns: GlossDetailRow[] }
       claim_duplicate_billing: { Args: { p_plan_id?: string }; Returns: DuplicateBillingRow[] }
+      // migration 008 — ponte das planilhas
+      legacy_rpa_base: { Args: never; Returns: Json }
+      legacy_sync_status: { Args: never; Returns: LegacySyncStatusRow[] }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

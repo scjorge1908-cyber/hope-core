@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+      body { background-color: #f0f2f5; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
+      .container-main { max-width: 700px; width: 100%; }
+      .main-card, .exencao-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; }
+      .header { text-align: center; margin-bottom: 20px; color: #004d40; }
+      .btn-gerar { background-color: #004d40; color: white; width: 100%; padding: 12px; font-weight: bold; font-size: 16px; border-radius: 8px; transition: 0.3s; }
+      .btn-gerar:hover { background-color: #00332a; }
+      .btn-secondary-custom { background-color: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; }
+      .btn-secondary-custom:hover { background-color: #5a6268; }
+      .btn-danger-custom { background-color: #dc3545; color: white; border: none; padding: 4px 10px; font-size: 12px; border-radius: 4px; }
+      .btn-danger-custom:hover { background-color: #a71d2a; }
+      .loading { display: none; text-align: center; margin-top: 20px; }
+      .result-area { display: none; margin-top: 20px; padding: 15px; border-radius: 8px; background-color: #e8f5e9; border: 1px solid #c8e6c9; text-align: center; }
+      .log-area { font-size: 11px; color: #666; margin-top: 20px; max-height: 100px; overflow-y: auto; border-top: 1px solid #eee; padding-top: 10px; display: none; text-align: left; }
+      .exencao-list { margin-top: 15px; border-top: 1px solid #dee2e6; padding-top: 15px; }
+      .exencao-item { display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 8px; }
+      .exencao-info { font-size: 14px; }
+      .exencao-info strong { color: #004d40; }
+      .exencao-info .percentual-badge { display: inline-block; margin-left: 6px; background: #004d40; color: white; font-size: 11px; padding: 1px 8px; border-radius: 10px; font-weight: bold; }
+      .flex-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 15px; flex-wrap: wrap; }
+      .flex-row .form-group { flex: 1; min-width: 120px; }
+      .flex-row .form-group.percentual-group { flex: 0 0 110px; }
+    </style>
+  </head>
+  <body>
+
+    <div class="container-main">
+      <!-- Card Principal -->
+      <div class="main-card">
+        <div class="header">
+          <h1><i class="fas fa-gem"></i> Gerador Mestre</h1>
+          <p>Consolidador de RPAs - Clínica Hope</p>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Mês de Referência</label>
+          <select id="mes" class="form-select form-select-lg">
+            <option value="JANEIRO">Janeiro</option>
+            <option value="FEVEREIRO">Fevereiro</option>
+            <option value="MARCO">Março</option>
+            <option value="ABRIL">Abril</option>
+            <option value="MAIO">Maio</option>
+            <option value="JUNHO">Junho</option>
+            <option value="JULHO">Julho</option>
+            <option value="AGOSTO">Agosto</option>
+            <option value="SETEMBRO">Setembro</option>
+            <option value="OUTUBRO">Outubro</option>
+            <option value="NOVEMBRO">Novembro</option>
+            <option value="DEZEMBRO">Dezembro</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">Ano</label>
+          <input type="number" id="ano" class="form-control form-control-lg" value="2025">
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-bold">Tipo de Relatório</label>
+          <select id="tipoRelatorio" class="form-select form-select-lg" style="border-left: 5px solid #004d40;">
+            <option value="COMPLETO" selected>Completo (RPA + Pagar)</option>
+            <option value="RPA">Apenas RPA (Impostos)</option>
+            <option value="PAGAR">Apenas Valor a Pagar (Líquido)</option>
+          </select>
+        </div>
+
+        <button onclick="gerar()" id="btnAcao" class="btn btn-gerar">
+          <i class="fas fa-file-pdf"></i> GERAR RELATÓRIO
+        </button>
+
+        <div id="loading" class="loading">
+          <div class="spinner-border text-success" role="status"></div>
+          <p class="mt-2 text-muted">Acessando planilhas e calculando...<br>Isso pode levar alguns segundos.</p>
+        </div>
+
+        <div id="resultado" class="result-area">
+          <h5 class="text-success"><i class="fas fa-check-circle"></i> Sucesso!</h5>
+          <p>O PDF consolidado foi gerado.</p>
+          <a id="linkPdf" href="#" target="_blank" class="btn btn-outline-success mt-2">
+            <i class="fas fa-download"></i> Baixar/Abrir PDF
+          </a>
+        </div>
+        
+        <div id="logs" class="log-area"></div>
+      </div>
+
+      <!-- Card de Isenção CNPJ -->
+      <div class="exencao-card">
+        <h3><i class="fas fa-building"></i> Isenção de RPA (CNPJ)</h3>
+        <p class="text-muted" style="font-size: 13px;">Psicólogas com CNPJ são isentas de RPA. O repasse é calculado sobre o percentual individual definido abaixo (sem desconto de INSS).</p>
+
+        <div class="flex-row">
+          <div class="form-group">
+            <label class="form-label fw-bold">Psicóloga</label>
+            <select id="selPsicologaExencao" class="form-select">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label fw-bold">CNPJ</label>
+            <input type="text" id="cnpjInput" class="form-control" placeholder="00.000.000/0001-00" oninput="formatCNPJ(this)" />
+          </div>
+          <div class="form-group percentual-group">
+            <label class="form-label fw-bold">Repasse (%)</label>
+            <input type="number" id="percentualInput" class="form-control" placeholder="45" min="1" max="100" step="0.01" value="45" />
+          </div>
+          <button class="btn btn-secondary-custom" onclick="salvarExencao()" style="margin-bottom: 2px;">Salvar</button>
+        </div>
+
+        <div id="listaExencoes" class="exencao-list">
+          <p style="color:#999; text-align:center;">Carregando isenções...</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ======================== FUNÇÃO DE FORMATAÇÃO DE CNPJ ========================
+      function formatCNPJ(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.length > 14) value = value.slice(0, 14);
+        
+        if (value.length <= 2) {
+          input.value = value;
+        } else if (value.length <= 5) {
+          input.value = value.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+        } else if (value.length <= 8) {
+          input.value = value.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        } else if (value.length <= 12) {
+          input.value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+        } else {
+          input.value = value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+        }
+      }
+
+      // ======================== FUNÇÕES DE ISENÇÃO ========================
+      function carregarListaExencoes() {
+        google.script.run
+          .withSuccessHandler(mostrarListaExencoes)
+          .listarExencoes();
+      }
+
+      function mostrarListaExencoes(exencoes) {
+        const div = document.getElementById('listaExencoes');
+        if (!exencoes.length) {
+          div.innerHTML = '<p style="color:#999; text-align:center;">Nenhuma psicóloga isenta cadastrada.</p>';
+          return;
+        }
+        let html = '';
+        exencoes.forEach(e => {
+          html += `
+            <div class="exencao-item">
+              <div class="exencao-info">
+                <strong>${e.nome}</strong><span class="percentual-badge">${e.percentual}%</span><br>
+                <span style="font-size:12px;">CNPJ: ${e.cnpj}</span>
+              </div>
+              <button class="btn-danger-custom" onclick="excluirExencao('${e.id}')">Excluir</button>
+            </div>
+          `;
+        });
+        div.innerHTML = html;
+      }
+
+      function salvarExencao() {
+        const psicologaId = document.getElementById('selPsicologaExencao').value;
+        const cnpj = document.getElementById('cnpjInput').value.trim();
+        const percentual = document.getElementById('percentualInput').value.trim();
+        if (!psicologaId || !cnpj) {
+          alert('Selecione uma psicóloga e informe o CNPJ.');
+          return;
+        }
+        if (!percentual || isNaN(percentual) || Number(percentual) <= 0 || Number(percentual) > 100) {
+          alert('Informe um percentual de repasse válido (entre 1 e 100).');
+          return;
+        }
+        google.script.run
+          .withSuccessHandler(function() {
+            alert('Isenção salva com sucesso!');
+            document.getElementById('cnpjInput').value = '';
+            document.getElementById('percentualInput').value = '45';
+            document.getElementById('selPsicologaExencao').value = '';
+            carregarListaExencoes();
+          })
+          .withFailureHandler(function(erro) {
+            alert('Erro ao salvar: ' + erro);
+          })
+          .adicionarExencao(psicologaId, cnpj, Number(percentual));
+      }
+
+      function excluirExencao(psicologaId) {
+        if (!confirm('Remover a isenção desta psicóloga?')) return;
+        google.script.run
+          .withSuccessHandler(function() {
+            carregarListaExencoes();
+          })
+          .withFailureHandler(function(erro) {
+            alert('Erro ao excluir: ' + erro);
+          })
+          .removerExencao(psicologaId);
+      }
+
+      function carregarPsicologasParaSelect() {
+        google.script.run
+          .withSuccessHandler(function(lista) {
+            const select = document.getElementById('selPsicologaExencao');
+            select.innerHTML = '<option value="">Selecione...</option>';
+            lista.forEach(p => {
+              let opt = document.createElement('option');
+              opt.value = p.id;
+              opt.text = p.nomeCompleto;
+              select.appendChild(opt);
+            });
+          })
+          .getListaPsicologasCompleta();
+      }
+
+      // ======================== FUNÇÕES DO GERADOR ========================
+      function setCurrentMonthYear() {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const monthNames = [
+          "JANEIRO", "FEVEREIRO", "MARCO", "ABRIL", "MAIO", "JUNHO",
+          "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+        ];
+        const monthValue = monthNames[currentMonth];
+        
+        const mesSelect = document.getElementById('mes');
+        if (mesSelect) {
+          for (let i = 0; i < mesSelect.options.length; i++) {
+            if (mesSelect.options[i].value === monthValue) {
+              mesSelect.selectedIndex = i;
+              break;
+            }
+          }
+        }
+        
+        const anoInput = document.getElementById('ano');
+        if (anoInput) {
+          anoInput.value = currentYear;
+        }
+      }
+
+      function gerar() {
+        const mes = document.getElementById('mes').value;
+        const ano = document.getElementById('ano').value;
+        const tipo = document.getElementById('tipoRelatorio').value; 
+        
+        document.getElementById('btnAcao').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('resultado').style.display = 'none';
+        document.getElementById('logs').style.display = 'none';
+
+        google.script.run
+          .withSuccessHandler(retorno => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('btnAcao').disabled = false;
+
+            if (retorno.sucesso) {
+              document.getElementById('resultado').style.display = 'block';
+              document.getElementById('linkPdf').href = retorno.url;
+              
+              const logsDiv = document.getElementById('logs');
+              logsDiv.style.display = 'block';
+              logsDiv.innerText = retorno.logs;
+            } else {
+              alert("❌ Erro ao gerar: " + retorno.erro);
+            }
+          })
+          .withFailureHandler(erro => {
+             document.getElementById('loading').style.display = 'none';
+             document.getElementById('btnAcao').disabled = false;
+             alert("Erro crítico: " + erro.message);
+          })
+          .processarRelatorioWeb(mes, ano, tipo); 
+      }
+
+      // Inicialização
+      window.onload = function() {
+        setCurrentMonthYear(); // Define mês e ano atuais
+        carregarPsicologasParaSelect();
+        carregarListaExencoes();
+      };
+    </script>
+  </body>
+</html>

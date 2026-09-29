@@ -1,0 +1,96 @@
+/* Mesmo visual do PDF gerado pelo gerarPDFNoDrive() do Sistema Mestre RPA */
+.relatorio {
+  background: #fff;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 40px;
+  font-size: 12px;
+  border: 1px solid var(--fin-border);
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.relatorio h1 {
+  font-size: 18px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.relatorio table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.relatorio th {
+  text-align: left;
+  border-bottom: 2px solid #000;
+  padding-bottom: 8px;
+  font-weight: bold;
+}
+
+.relatorio td {
+  padding: 10px 0;
+  border-bottom: 1px dashed #ccc;
+  vertical-align: top;
+}
+
+.nome {
+  text-align: left;
+  font-weight: bold;
+  width: 60%;
+}
+
+.valor {
+  text-align: right !important;
+  width: 40%;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.sub {
+  font-weight: normal;
+  font-size: 10px;
+  color: #555;
+}
+
+.subAlerta {
+  font-weight: normal;
+  font-size: 10px;
+  color: #dc3545;
+}
+
+.total {
+  margin-top: 20px;
+  border-top: 2px solid #000;
+  padding-top: 10px;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quebra {
+  page-break-before: always;
+  break-before: page;
+  height: 32px;
+}
+
+@media (max-width: 600px) {
+  .relatorio {
+    padding: 16px;
+  }
+}
+
+@media print {
+  .naoImprimir {
+    display: none !important;
+  }
+  .relatorio {
+    border: none;
+    padding: 20px;
+  }
+}

@@ -341,3 +341,16 @@
   color: var(--fin-accent);
   margin: 6px 0 10px;
 }
+
+@media print {
+  .header {
+    display: none !important;
+  }
+  .shell {
+    background: #fff;
+  }
+  .main {
+    padding: 0;
+    max-width: none;
+  }
+}
