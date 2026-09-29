@@ -494,6 +494,9 @@
   border-radius: 8px;
   background: var(--fin-surface);
   color: var(--fin-text);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
