@@ -174,7 +174,7 @@ export async function gerarPdfNaoLancadas(grupos: PsicologaNaoLancada[], o: Opco
       cabecalhoTabela()
       for (const p of g.pacientes) {
         p.guias.forEach((x, i) => {
-          const celulas = [i === 0 ? p.paciente : '', x.guia ?? '', x.plano, (x.refs ?? []).join(', ') || '—']
+          const celulas = [p.paciente, x.guia ?? '', x.plano, (x.refs ?? []).join(', ') || '—']
           const quebradas = celulas.map((c, k) => quebrar(c, k === 0 ? fb : f, 9, COLS[k].larg - 8))
           const alt = Math.max(...quebradas.map((q) => q.length)) * 11 + 9
           garantir(alt)
@@ -247,9 +247,9 @@ export async function gerarPdfNaoLancadas(grupos: PsicologaNaoLancada[], o: Opco
     for (const p of g.pacientes) {
       p.guias.forEach((x, i) => {
         const celulas = adm
-          ? [i === 0 ? p.paciente : '', x.guia ?? '', x.plano, (x.refs ?? []).join(', ') || '—']
+          ? [p.paciente, x.guia ?? '', x.plano, (x.refs ?? []).join(', ') || '—']
           : [
-          i === 0 ? p.paciente : '',
+          p.paciente,
           x.guia ?? 'SEM Nº',
           x.plano,
           x.datas.length ? x.datas.map((d) => dataBR(d).slice(0, 5)).join(', ') : '—',

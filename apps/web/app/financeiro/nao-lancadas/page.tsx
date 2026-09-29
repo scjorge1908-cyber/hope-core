@@ -285,7 +285,7 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
                     <th>Paciente</th>
                     <th>Guia</th>
                     <th>Plano</th>
-                    <th>Lançada pelo admin em</th>
+                    <th>Mês / semana</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -297,7 +297,7 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
                           : null
                       return (
                         <tr key={`${p.paciente}-${x.guia}-${i}`} className={i === 0 ? n.primeira : undefined}>
-                          <td className={n.paciente}>{i === 0 ? p.paciente : ''}</td>
+                          <td className={n.paciente}>{p.paciente}</td>
                           <td>
                             <span className={n.guia}>{x.guia}</span>
                             {deep && (
@@ -337,7 +337,7 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
                           : null
                       return (
                         <tr key={`${p.paciente}-${x.guia ?? 'sem'}-${i}`} className={i === 0 ? n.primeira : undefined}>
-                          <td className={n.paciente}>{i === 0 ? p.paciente : ''}</td>
+                          <td className={n.paciente}>{p.paciente}</td>
                           <td>
                             {x.guia ? (
                               <>
