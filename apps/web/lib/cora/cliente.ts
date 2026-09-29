@@ -37,7 +37,13 @@ export function configCora(): ConfigCora | null {
   const cert = lerPem(process.env.CORA_CERT)
   const key = lerPem(process.env.CORA_KEY)
   if (!clientId || !cert || !key) return null
-  const ambiente = process.env.CORA_AMBIENTE === 'producao' ? 'producao' : 'stage'
+  // aceita "producao", "produção", "Producao", "prod", "production" (com espaços/aspas)
+  const bruto = String(process.env.CORA_AMBIENTE ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/["'\s]/g, '')
+    .toLowerCase()
+  const ambiente = bruto.startsWith('prod') ? 'producao' : 'stage'
   return { ambiente, clientId, cert, key }
 }
 
