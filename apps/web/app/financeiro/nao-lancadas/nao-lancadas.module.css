@@ -33,8 +33,11 @@
 }
 
 .topoBloco a {
-  margin-left: auto;
   font-size: 13px;
+}
+
+.pdf {
+  margin-left: auto;
 }
 
 .primeira td {

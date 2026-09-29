@@ -61,6 +61,11 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
   const totSessoes = grupos.reduce((t, g) => t + g.sessoes, 0)
   const totPacientes = grupos.reduce((t, g) => t + g.pacientes.length, 0)
   const periodo = de === ate ? rotuloMes(de) : `${rotuloMes(de)} a ${rotuloMes(ate)}`
+  const pdfQuery = (psi: string) => {
+    const q = new URLSearchParams({ de, ate, semguia: incluirSemGuia ? '1' : '0' })
+    if (psi) q.set('psi', psi)
+    return q.toString()
+  }
 
   return (
     <>
@@ -104,6 +109,9 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
         </form>
 
         <div className={n.acoes}>
+          <a className={s.button} href={`/financeiro/nao-lancadas/pdf?${pdfQuery(psiFiltro)}`} download>
+            ⬇ Baixar PDF {psiFiltro ? `— ${psiFiltro}` : '(todas, uma por página)'}
+          </a>
           <BotaoImprimir />
           <BotaoSincronizar compacto />
         </div>
@@ -151,6 +159,9 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
               {int(g.guias)} guia{g.guias === 1 ? '' : 's'} · {int(g.pacientes.length)} paciente{g.pacientes.length === 1 ? '' : 's'} · {int(g.sessoes)} sess
               {g.sessoes === 1 ? 'ão' : 'ões'}
             </span>
+            <a className={`${s.buttonSmall} ${n.naoImprimir} ${n.pdf}`} href={`/financeiro/nao-lancadas/pdf?${pdfQuery(g.psicologa)}`} download>
+              ⬇ PDF
+            </a>
             {g.spreadsheet_id && (
               <a className={`${s.link} ${n.naoImprimir}`} href={`https://docs.google.com/spreadsheets/d/${g.spreadsheet_id}/edit`} target="_blank" rel="noopener">
                 Planilha ↗
