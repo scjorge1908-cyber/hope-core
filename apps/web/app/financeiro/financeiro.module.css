@@ -522,24 +522,29 @@
   font: inherit;
   font-weight: 600;
   font-size: 14px;
-  padding: 9px 16px;
+  line-height: 1.2;
+  padding: 8px 16px;
   min-height: 40px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  background: var(--fin-text);
-  color: var(--fin-surface);
+  border-radius: 6px;
+  border: none;
+  background-color: var(--fin-accent);
+  color: #ffffff;
   cursor: pointer;
   justify-self: start;
   text-decoration: none;
-  box-shadow: var(--fin-shadow);
-  transition: opacity 0.15s ease, transform 0.05s ease;
+  user-select: none;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.12);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.06s ease;
 }
 
 .button:hover {
-  opacity: 0.88;
+  background-color: color-mix(in srgb, var(--fin-accent) 86%, #000);
+  box-shadow: 0 3px 8px rgb(37 99 235 / 0.28);
 }
 
 .button:active {
+  background-color: color-mix(in srgb, var(--fin-accent) 74%, #000);
+  box-shadow: 0 1px 1px rgb(16 24 40 / 0.2);
   transform: translateY(1px);
 }
 
@@ -551,16 +556,40 @@
 .button:disabled {
   opacity: 0.6;
   cursor: wait;
+  transform: none;
 }
 
+/* secundário: contorno, fundo claro */
 .buttonSmall {
   composes: button;
   padding: 4px 12px;
   min-height: 30px;
   font-size: 13px;
-  background: var(--fin-surface);
+  background-color: var(--fin-surface);
   color: var(--fin-text);
-  border-color: var(--fin-border-strong);
+  border: 1px solid var(--fin-border-strong);
+  box-shadow: none;
+}
+
+.buttonSmall:hover {
+  background-color: var(--fin-surface-2);
+  border-color: var(--fin-accent);
+  color: var(--fin-accent);
+  box-shadow: none;
+}
+
+.buttonSmall:active {
+  background-color: var(--fin-accent-soft);
+  box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .button {
+    color: #0b0d10;
+  }
+  .buttonSmall {
+    color: var(--fin-text);
+  }
 }
 
 .drop {
