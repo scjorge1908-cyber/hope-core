@@ -63,13 +63,21 @@ export async function GET(request: NextRequest) {
   }
   const grupos = psi ? todas.filter((g) => g.psicologa === psi) : todas.sort((a, b) => a.psicologa.localeCompare(b.psicologa, 'pt-BR'))
   const periodo = de === ate ? rotuloMes(de) : `${rotuloMes(de)} a ${rotuloMes(ate)}`
+  const MES_LONGO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+  const extenso = (ym: string) => `${MES_LONGO[Number(ym.slice(5, 7)) - 1]} de ${ym.slice(0, 4)}`
+  const periodoExtenso =
+    de === ate
+      ? extenso(de)
+      : de.slice(0, 4) === ate.slice(0, 4)
+        ? `${MES_LONGO[Number(de.slice(5, 7)) - 1]} a ${extenso(ate)}`
+        : `${extenso(de)} a ${extenso(ate)}`
   const agora = new Date()
   const geradoEm = agora.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
   // psicóloga escolhida sem pendência: PDF com o nome dela e "nenhuma pendência"
   const bytes = await gerarPdfNaoLancadas(
     psi && !grupos.length ? [{ psicologa: psi, spreadsheet_id: null, pacientes: [], guias: 0, sessoes: 0 }] : grupos,
-    { periodo, geradoEm, incluirSemGuia, modo }
+    { periodo, geradoEm, incluirSemGuia, modo, periodoExtenso }
   )
   const nome = `${modo === 'adm' ? 'Guias-sem-sessao-na-planilha' : 'Guias-pendentes'}-${arquivo(psi || 'todas')}-${de}${de === ate ? '' : `-a-${ate}`}.pdf`
   return new NextResponse(Buffer.from(bytes), {

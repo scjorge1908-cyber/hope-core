@@ -12,6 +12,8 @@ export type OpcoesPdf = {
   incluirSemGuia: boolean
   /** 'adm' (padrão da tela): guia no ADM sem sessão na planilha · 'planilha': sessão na planilha sem guia no ADM */
   modo?: 'adm' | 'planilha'
+  /** cabeçalho do PDF: "Setembro de 2026" (sem isso usa `periodo`) */
+  periodoExtenso?: string
 }
 
 const A4 = { w: 595.28, h: 841.89 }
@@ -76,7 +78,7 @@ const COLS_ADM: Col[] = [
   { titulo: 'Paciente', larg: 185 },
   { titulo: 'Guia', larg: 100 },
   { titulo: 'Plano', larg: 70 },
-  { titulo: 'Lançada pelo admin em', larg: 160 },
+  { titulo: 'Mês / semana', larg: 160 },
 ]
 const COLS_PLANILHA: Col[] = [
   { titulo: 'Paciente', larg: 140 },
@@ -91,7 +93,7 @@ const COLS_PLANILHA: Col[] = [
 export async function gerarPdfNaoLancadas(grupos: PsicologaNaoLancada[], o: OpcoesPdf): Promise<Uint8Array> {
   const adm = o.modo !== 'planilha'
   const COLS = adm ? COLS_ADM : COLS_PLANILHA
-  const TITULO = adm ? 'Guias sem sessão na sua planilha' : 'Guias pendentes de lançamento'
+  const TITULO = adm ? 'Relatório de guias não lançadas' : 'Guias pendentes de lançamento'
   const doc = await PDFDocument.create()
   doc.setTitle(textoSeguro(`${TITULO} — ${o.periodo}`))
   doc.setAuthor('Clínica Hope — HOPE CORE')
@@ -148,6 +150,49 @@ export async function gerarPdfNaoLancadas(grupos: PsicologaNaoLancada[], o: Opco
   for (const g of grupos) {
     psiAtual = g.psicologa
     novaPagina(false)
+
+    // modo ADM: cabeçalho enxuto — título, psicóloga, mês, total e a lista de guias
+    if (adm) {
+      txt('RELATÓRIO DE GUIAS NÃO LANÇADAS', M, y - 6, 16, fb)
+      y -= 30
+      txt('Psicóloga:', M, y, 11, fb, COR.suave)
+      txt(g.psicologa, M + 62, y, 11, fb)
+      y -= 17
+      txt('Mês:', M, y, 11, fb, COR.suave)
+      txt(o.periodoExtenso || o.periodo, M + 62, y, 11, fb)
+      y -= 22
+      const rot = 'TOTAL DE GUIAS NÃO LANÇADAS'
+      pag.drawRectangle({ x: M, y: y - 34, width: A4.w - 2 * M, height: 40, color: rgb(1, 0.98, 0.92), borderColor: rgb(0.96, 0.84, 0.6), borderWidth: 1 })
+      txt(rot, M + 12, y - 19, 10, fb, COR.alerta)
+      const val = String(g.guias)
+      txt(val, A4.w - M - 12 - fb.widthOfTextAtSize(val, 20), y - 23, 20, fb, COR.alerta)
+      y -= 50
+      if (!g.pacientes.length) {
+        txt('Nenhuma guia não lançada neste período. Obrigado!', M, y - 6, 12, fb, COR.bom)
+        continue
+      }
+      cabecalhoTabela()
+      for (const p of g.pacientes) {
+        p.guias.forEach((x, i) => {
+          const celulas = [i === 0 ? p.paciente : '', x.guia ?? '', x.plano, (x.refs ?? []).join(', ') || '—']
+          const quebradas = celulas.map((c, k) => quebrar(c, k === 0 ? fb : f, 9, COLS[k].larg - 8))
+          const alt = Math.max(...quebradas.map((q) => q.length)) * 11 + 9
+          garantir(alt)
+          if (i === 0) pag.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness: 0.8, color: rgb(0.82, 0.84, 0.86) })
+          let xx = M + 4
+          quebradas.forEach((linhas, k) => {
+            linhas.forEach((l, j) => txt(l, xx, y - 12 - j * 11, 9, k === 0 ? fb : f, k === 3 ? COR.suave : COR.texto))
+            xx += COLS[k].larg
+          })
+          y -= alt
+          pag.drawLine({ start: { x: M, y }, end: { x: A4.w - M, y }, thickness: 0.4, color: COR.linha })
+        })
+      }
+      garantir(30)
+      y -= 16
+      txt(`Gerado em ${o.geradoEm} · Dúvidas: equipe administrativa da Clínica Hope.`, M, y, 8, f, COR.suave)
+      continue
+    }
 
     txt(g.psicologa, M, y - 6, 18, fb)
     y -= 28
