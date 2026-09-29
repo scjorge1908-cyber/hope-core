@@ -61,7 +61,10 @@ export async function sincronizarBanco(supabase: SupabaseClient<FinanceDatabase>
 /** A última busca foi há mais de `minutos`? */
 export async function precisaSincronizar(supabase: SupabaseClient<FinanceDatabase>, minutos = 30): Promise<boolean> {
   if (!configCora()) return false
-  const { data } = await supabase.from('bank_sync').select('last_synced_at').maybeSingle()
+  const { data } = await supabase.from('bank_sync').select('last_synced_at, last_period_start').maybeSingle()
+  // ainda não leu o ano todo (desde 1º de janeiro) → lê já, sem esperar os 30 min
+  const janeiro = `${hojeSaoPaulo().slice(0, 4)}-01-01`
+  if (!data?.last_period_start || data.last_period_start > janeiro) return true
   const ult = data?.last_synced_at ? new Date(data.last_synced_at).getTime() : 0
   return Date.now() - ult > minutos * 60_000
 }
