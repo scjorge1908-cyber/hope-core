@@ -605,3 +605,60 @@
     border-color: #1f2937;
   }
 }
+
+/* ---------- barra de rolagem presa no rodapé da tela ---------- */
+.grade {
+  overflow: clip !important; /* "clip" (e não "hidden") deixa a barra sticky funcionar */
+}
+
+.barraFixa {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  height: 18px;
+  background: #e5e7eb;
+  border-top: 1px solid var(--fin-border);
+  scrollbar-width: auto;
+  scrollbar-color: #111827 #e5e7eb;
+}
+
+.barraFixa::-webkit-scrollbar {
+  height: 16px;
+  background: #e5e7eb;
+}
+
+.barraFixa::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+.barraFixa::-webkit-scrollbar-thumb {
+  background: #111827;
+  border-radius: 8px;
+  border: 3px solid #e5e7eb;
+  min-width: 60px;
+}
+
+.barraFixa::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+}
+
+.barraFixa::-webkit-scrollbar-thumb:active {
+  background: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .barraFixa {
+    background: #1f2937;
+    scrollbar-color: #e5e7eb #1f2937;
+  }
+  .barraFixa::-webkit-scrollbar,
+  .barraFixa::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+  .barraFixa::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-color: #1f2937;
+  }
+}

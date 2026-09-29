@@ -17,6 +17,7 @@ import { ImportOrizonForm } from './import-orizon-form'
 import { AutoConciliar } from '../banco/auto-conciliar'
 import { ignorar } from '../banco/actions'
 import { RolarParaHoje } from './rolar-hoje'
+import { BarraRolagemFixa } from './barra-fixa'
 import { cancelarLancamento, desfazerRealizado, marcarRealizado, novoLancamento, salvarPrazo } from './actions'
 import s from '../financeiro.module.css'
 import a from './agenda.module.css'
@@ -326,6 +327,7 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
             </tbody>
           </table>
         </div>
+        <BarraRolagemFixa alvo="agenda-grade" />
         <RolarParaHoje alvo="agenda-grade" />
         <div className={a.legenda}>
           {(
