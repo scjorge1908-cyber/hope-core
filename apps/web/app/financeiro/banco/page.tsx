@@ -3,6 +3,9 @@ import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, dataBR, int } from '@/lib/financeiro/format'
 import { hojeSaoPaulo } from '@/lib/financeiro/agenda'
 import { configCora, diagnosticoCora, extratoCora, saldoCora, type DiagnosticoCora, type ExtratoCora } from '@/lib/cora/cliente'
+import { AutoConciliar } from './auto-conciliar'
+import { buscarAgora, desvincular, ignorar, vincular } from './actions'
+import type { BankSugestaoRow } from '@/lib/financeiro/db-types'
 import s from '../financeiro.module.css'
 
 export const metadata = { title: 'Banco (Cora) — HOPE CORE' }
@@ -18,7 +21,7 @@ function somarDias(iso: string, k: number) {
 }
 
 export default async function BancoPage({ searchParams }: PageProps<'/financeiro/banco'>) {
-  const { allowed } = await requireFinanceAccess()
+  const { allowed, supabase } = await requireFinanceAccess()
   if (!allowed) return null
 
   const sp = await searchParams
@@ -46,12 +49,51 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
   const totEnt = extrato?.aggregations?.creditTotal ?? entradas.reduce((t, e) => t + Number(e.amount), 0)
   const totSai = extrato?.aggregations?.debitTotal ?? saidas.reduce((t, e) => t + Number(e.amount), 0)
 
+  // ---------- conciliação com a Agenda ----------
+  const desde = somarDias(hoje, -120)
+  const [{ data: sync }, { data: creditos }, { data: vinculos }] = await Promise.all([
+    supabase.from('bank_sync').select('*').maybeSingle(),
+    supabase
+      .from('bank_transactions')
+      .select('*')
+      .eq('kind', 'entrada')
+      .gte('occurred_on', desde)
+      .order('occurred_on', { ascending: false })
+      .limit(400),
+    supabase.from('bank_matches').select('*').order('created_at', { ascending: false }).limit(400),
+  ])
+  const porTx = new Map<string, NonNullable<typeof vinculos>>()
+  for (const m of vinculos ?? []) porTx.set(m.bank_transaction_id, [...(porTx.get(m.bank_transaction_id) ?? []), m])
+  const aConferir = (creditos ?? []).filter((c) => !c.ignored && !porTx.has(c.id))
+  const conciliados = (creditos ?? []).filter((c) => porTx.has(c.id)).slice(0, 40)
+  const ignorados = (creditos ?? []).filter((c) => c.ignored && !porTx.has(c.id)).slice(0, 20)
+  const sugestoes = new Map<string, BankSugestaoRow[]>()
+  await Promise.all(
+    aConferir.slice(0, 15).map(async (c) => {
+      const { data } = await supabase.rpc('bank_sugestoes', { p_tx: c.id })
+      sugestoes.set(c.id, (data ?? []) as BankSugestaoRow[])
+    })
+  )
+  // descrição dos previstos confirmados (Agenda)
+  const alvos = [...new Set((vinculos ?? []).map((m) => m.target_id))]
+  const { data: agenda } = alvos.length
+    ? await supabase.from('cashflow_calendar').select('id, category, description, external_ref, expected_date').in('id', alvos.slice(0, 400))
+    : { data: [] }
+  const descAlvo = new Map((agenda ?? []).map((a) => [a.id, `${a.category}${a.external_ref ? ` · ${a.external_ref}` : ''} (prev. ${dataBR(a.expected_date)})`]))
+  const ok = typeof sp.ok === 'string' ? sp.ok : ''
+  const erroAcao = typeof sp.erro === 'string' ? sp.erro : ''
+
   return (
     <>
       <Titulo titulo="Banco (Cora)">
         Conta da clínica no Cora pela <strong>Integração Direta</strong> (certificado + chave privada + client ID guardados só na
-        Vercel). Por enquanto só leitura: saldo e extrato. Próximo passo: confirmar sozinho, na Agenda, os recebimentos de
-        Bradesco e Unimed que caírem na conta.
+        Vercel). Só leitura: saldo e extrato — nada é pago ou transferido por aqui.
+        <br />
+        <br />
+        <strong>Conciliação:</strong> ao abrir a Agenda ou esta página (no máximo a cada 30 min), o sistema lê o extrato dos
+        últimos 60 dias e confirma sozinho, na Agenda, os recebimentos que baterem: (1) mesmo valor de um previsto; (2) soma
+        de todos os previstos do mesmo plano no mesmo dia; (3) quando o pagador indica o plano (ex.: “BRADESCO”), os previstos
+        mais antigos do plano até fechar o valor exato. O que não bater fica em “Entradas a conferir”, com sugestões.
       </Titulo>
 
       {!cfg && (
@@ -200,6 +242,175 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
             </div>
           </section>
         </>
+      )}
+
+      {cfg && (
+        <section id="conciliacao" className={s.section}>
+          <AutoConciliar />
+          <h2 className={s.sectionTitle}>Conciliação com a Agenda</h2>
+          <p className={s.sectionNote}>
+            Última leitura do extrato:{' '}
+            {sync?.last_synced_at
+              ? new Date(sync.last_synced_at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+              : 'nunca'}
+            . Entradas dos últimos 120 dias.
+          </p>
+          {ok && <div className={s.alertGood}>{ok}</div>}
+          {erroAcao && <div className={s.alertBad}>{erroAcao}</div>}
+          <form action={buscarAgora} style={{ marginBottom: 20 }}>
+            <input type="hidden" name="inicio" value={inicio} />
+            <input type="hidden" name="fim" value={fim} />
+            <button type="submit" className={s.button}>
+              Buscar pagamentos e conciliar agora
+            </button>
+          </form>
+
+          <h3 className={s.sectionTitle} style={{ fontSize: 15 }}>
+            Entradas a conferir ({int(aConferir.length)})
+          </h3>
+          {!aConferir.length ? (
+            <p className={s.muted} style={{ fontSize: 14, marginBottom: 16 }}>
+              Nenhuma entrada pendente de conferência.
+            </p>
+          ) : (
+            <div className={s.tableWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Pagador / descrição</th>
+                    <th className={s.num}>Valor</th>
+                    <th>Pode ser (previsto na Agenda)</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {aConferir.slice(0, 60).map((c) => (
+                    <tr key={c.id}>
+                      <td>{dataBR(c.occurred_on)}</td>
+                      <td style={{ whiteSpace: 'normal', maxWidth: 260 }}>
+                        <strong>{c.counterparty_name ?? '—'}</strong>
+                        <br />
+                        <span className={s.muted}>{c.description ?? c.transaction_type ?? ''}</span>
+                      </td>
+                      <td className={s.numGood}>{brl(c.amount)}</td>
+                      <td style={{ whiteSpace: 'normal', minWidth: 280 }}>
+                        {(sugestoes.get(c.id) ?? []).slice(0, 4).map((g) => (
+                          <form key={`${g.origem}-${g.target_id}`} action={vincular} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                            <input type="hidden" name="tx" value={c.id} />
+                            <input type="hidden" name="origem" value={g.origem} />
+                            <input type="hidden" name="target" value={g.target_id} />
+                            <input type="hidden" name="inicio" value={inicio} />
+                            <input type="hidden" name="fim" value={fim} />
+                            <button type="submit" className={s.buttonSmall}>
+                              É este
+                            </button>
+                            <span style={{ fontSize: 13 }}>
+                              {g.plano ?? '—'} · {brl(g.amount)} · prev. {dataBR(g.expected_date)}
+                              {Math.abs(Number(g.diferenca)) > 0.01 && <span className={s.muted}> (dif. {brl(Number(g.diferenca))})</span>}
+                            </span>
+                          </form>
+                        ))}
+                        {!sugestoes.has(c.id) && <span className={s.muted}>—</span>}
+                        {sugestoes.has(c.id) && !(sugestoes.get(c.id) ?? []).length && <span className={s.muted}>Nenhum previsto parecido.</span>}
+                      </td>
+                      <td>
+                        <form action={ignorar}>
+                          <input type="hidden" name="tx" value={c.id} />
+                          <input type="hidden" name="ignorar" value="1" />
+                          <input type="hidden" name="inicio" value={inicio} />
+                          <input type="hidden" name="fim" value={fim} />
+                          <button type="submit" className={s.buttonSmall} title="Particular, transferência própria etc.">
+                            Não é de plano
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <h3 className={s.sectionTitle} style={{ fontSize: 15, marginTop: 20 }}>
+            Confirmadas pelo banco ({int(conciliados.length)})
+          </h3>
+          {!conciliados.length ? (
+            <p className={s.muted} style={{ fontSize: 14, marginBottom: 16 }}>
+              Nenhuma ainda.
+            </p>
+          ) : (
+            <div className={s.tableWrap}>
+              <table className={s.table}>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Pagador</th>
+                    <th className={s.num}>Valor</th>
+                    <th>Confirmou na Agenda</th>
+                    <th>Como</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conciliados.map((c) => {
+                    const ms = porTx.get(c.id) ?? []
+                    return (
+                      <tr key={c.id}>
+                        <td>{dataBR(c.occurred_on)}</td>
+                        <td style={{ whiteSpace: 'normal', maxWidth: 240 }}>{c.counterparty_name ?? c.description ?? '—'}</td>
+                        <td className={s.numGood}>{brl(c.amount)}</td>
+                        <td style={{ whiteSpace: 'normal', minWidth: 260 }}>
+                          {ms.slice(0, 6).map((m) => (
+                            <form key={m.id} action={desvincular} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                              <input type="hidden" name="origem" value={m.origem} />
+                              <input type="hidden" name="target" value={m.target_id} />
+                              <input type="hidden" name="inicio" value={inicio} />
+                              <input type="hidden" name="fim" value={fim} />
+                              <span style={{ fontSize: 13 }}>
+                                {descAlvo.get(m.target_id) ?? 'previsto'} · {brl(m.amount)}
+                              </span>
+                              <button type="submit" className={s.buttonSmall} title="Volta para previsto">
+                                Desfazer
+                              </button>
+                            </form>
+                          ))}
+                          {ms.length > 6 && <span className={s.muted}>+ {ms.length - 6} previsto(s)</span>}
+                        </td>
+                        <td>
+                          <span className={ms[0]?.matched_by === 'manual' ? s.badgeWarn : s.badgeGood}>
+                            {ms[0]?.matched_by === 'manual' ? 'manual' : ms[0]?.regra ?? 'auto'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {!!ignorados.length && (
+            <details>
+              <summary>Marcadas como “não é de plano” ({ignorados.length})</summary>
+              <ul className={s.list}>
+                {ignorados.map((c) => (
+                  <li key={c.id}>
+                    <form action={ignorar} style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                      <input type="hidden" name="tx" value={c.id} />
+                      <input type="hidden" name="ignorar" value="0" />
+                      <input type="hidden" name="inicio" value={inicio} />
+                      <input type="hidden" name="fim" value={fim} />
+                      {dataBR(c.occurred_on)} · {c.counterparty_name ?? c.description ?? '—'} · {brl(c.amount)}
+                      <button type="submit" className={s.buttonSmall}>
+                        Voltar para conferir
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
       )}
     </>
   )

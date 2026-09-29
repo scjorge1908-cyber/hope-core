@@ -14,6 +14,7 @@ import {
 } from '@/lib/financeiro/agenda'
 import type { CashflowCalendarRow } from '@/lib/financeiro/db-types'
 import { ImportOrizonForm } from './import-orizon-form'
+import { AutoConciliar } from '../banco/auto-conciliar'
 import { cancelarLancamento, desfazerRealizado, marcarRealizado, novoLancamento, salvarPrazo } from './actions'
 import s from '../financeiro.module.css'
 import a from './agenda.module.css'
@@ -157,7 +158,12 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
         O que entra e o que sai em cada dia, por plano de saúde e por despesa. Bradesco vem do relatório da Orizon (45 dias da
         data de envio, no próximo dia útil); Unimed vem das notas fiscais; o resto é lançado aqui. Azul = previsto, verde =
         recebido/pago, vermelho = data passou e ainda não foi confirmado.
+        <br />
+        <br />
+        Recebimentos que caem na conta do Cora são confirmados sozinhos ao abrir esta página (no máximo a cada 30 min). O que
+        o banco não conseguiu casar aparece em Banco (Cora) → Entradas a conferir.
       </Titulo>
+      <AutoConciliar />
 
       {ok && <div className={s.alertGood}>{ok}</div>}
       {erro && <div className={s.alertBad}>{erro}</div>}

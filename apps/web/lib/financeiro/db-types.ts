@@ -228,6 +228,57 @@ export type LegacySyncStatusRow = {
   ultimo_erro: string | null
 }
 
+// migration 017 — extrato do banco (Cora) e conciliação com a Agenda
+export type BankTransactionRow = {
+  id: string
+  tenant_id: string
+  bank: string
+  external_id: string
+  occurred_at: string
+  occurred_on: string
+  kind: 'entrada' | 'saida'
+  amount: Num
+  transaction_type: string | null
+  description: string | null
+  counterparty_name: string | null
+  counterparty_doc: string | null
+  raw: Json | null
+  ignored: boolean
+  created_at: string
+}
+
+export type BankMatchRow = {
+  id: string
+  tenant_id: string
+  bank_transaction_id: string
+  origem: 'item' | 'nota_fiscal'
+  target_id: string
+  amount: Num
+  matched_by: 'auto' | 'manual'
+  regra: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type BankSyncRow = {
+  tenant_id: string
+  bank: string
+  last_synced_at: string | null
+  last_period_start: string | null
+  last_period_end: string | null
+  last_result: Json | null
+}
+
+export type BankSugestaoRow = {
+  origem: 'item' | 'nota_fiscal'
+  target_id: string
+  plano: string | null
+  amount: Num
+  expected_date: string
+  descricao: string | null
+  diferenca: Num
+}
+
 export type FinanceDatabase = {
   __InternalSupabase: { PostgrestVersion: '14.5' }
   public: {
@@ -251,6 +302,10 @@ export type FinanceDatabase = {
         Update: Partial<Pick<OperatorInvoiceRow, 'status' | 'paid_on' | 'paid_amount' | 'notes'>>
         Relationships: []
       }
+      // migration 017 — extrato do banco e conciliação
+      bank_transactions: { Row: BankTransactionRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
+      bank_matches: { Row: BankMatchRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
+      bank_sync: { Row: BankSyncRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
       users: {
         Row: { id: string; tenant_id: string; role: string; active: boolean }
         Insert: NoInsert
@@ -287,6 +342,12 @@ export type FinanceDatabase = {
       // migration 015
       legacy_marcar_desligada: { Args: { p_spreadsheet_id: string; p_desligada: boolean }; Returns: undefined }
       // migration 016 — guias no ADM sem sessão na aba Atendimentos
+      // migration 017 — banco
+      bank_registrar_extrato: { Args: { p: Json }; Returns: Json }
+      bank_vincular: { Args: { p_tx: string; p_origem: string; p_target: string }; Returns: undefined }
+      bank_desvincular: { Args: { p_origem: string; p_target: string }; Returns: undefined }
+      bank_ignorar: { Args: { p_tx: string; p_ignorar: boolean }; Returns: undefined }
+      bank_sugestoes: { Args: { p_tx: string }; Returns: BankSugestaoRow[] }
       guias_adm_sem_sessao: { Args: { p_de: string; p_ate: string }; Returns: import('./conferencia').LinhaAdmSemSessao[] }
     }
     Enums: { [_ in never]: never }

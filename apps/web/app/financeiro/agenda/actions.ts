@@ -139,6 +139,8 @@ export async function desfazerRealizado(fd: FormData) {
           .update({ status: 'previsto', realized_date: null, realized_amount: null, realized_source: null })
           .eq('id', id)
   if (error) voltar(fd, { erro: error.message })
+  // se tinha sido confirmado pelo extrato do banco, solta o vínculo (o crédito volta para "a conferir")
+  await supabase.rpc('bank_desvincular', { p_origem: origem === 'nota_fiscal' ? 'nota_fiscal' : 'item', p_target: id })
   voltar(fd, { ok: 'Voltou para previsto.' })
 }
 
