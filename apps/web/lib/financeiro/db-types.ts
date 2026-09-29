@@ -278,6 +278,8 @@ export type FinanceDatabase = {
       guia_divergencias: { Args: never; Returns: GuiaDivergenciaRow[] }
       // migration 011 — agenda de recebimentos
       import_orizon_lotes: { Args: { p: Json }; Returns: Json }
+      // migration 012 — painel de gestão
+      painel_gestao: { Args: never; Returns: Json }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
