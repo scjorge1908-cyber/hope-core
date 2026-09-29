@@ -96,38 +96,43 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
       </p>
 
       {plans.length > 1 && (
-        <div className={s.planPicker}>
+        <nav className={s.planPicker} aria-label="Plano de saúde">
           {plans.map((p) => (
-            <Link key={p.id} href={`/financeiro?plano=${p.id}`} className={p.id === plan.id ? s.planActive : undefined}>
+            <Link
+              key={p.id}
+              href={`/financeiro?plano=${p.id}`}
+              className={p.id === plan.id ? s.planActive : undefined}
+              aria-current={p.id === plan.id ? 'page' : undefined}
+            >
               {p.name}
             </Link>
           ))}
-        </div>
+        </nav>
       )}
 
       {firstError && <div className={s.alertBad}>Erro ao carregar dados: {firstError.message}</div>}
 
       <div className={s.cards}>
-        <div className={s.card}>
+        <div className={s.cardGood}>
           <div className={s.cardLabel}>Liberado pela operadora</div>
           <div className={s.cardValue}>{brl(released)}</div>
           <div className={s.cardHint}>
             {int(sessions)} sessões · informado {brl(informed)}
           </div>
         </div>
-        <div className={s.card}>
+        <div className={s.cardBad}>
           <div className={s.cardLabel}>Glosado (atual)</div>
           <div className={s.cardValue}>{brl(gloss)}</div>
           <div className={s.cardHint}>{pct(gloss, informed)} do informado</div>
         </div>
-        <div className={s.card}>
+        <div className={liberadoSemNota > 0 ? s.cardWarn : s.card}>
           <div className={s.cardLabel}>Liberado sem nota fiscal</div>
           <div className={s.cardValue}>{brl(liberadoSemNota)}</div>
           <div className={s.cardHint}>
             {semNota.length} demonstrativo{semNota.length === 1 ? '' : 's'} sem nota registrada
           </div>
         </div>
-        <div className={s.card}>
+        <div className={s.cardInfo}>
           <div className={s.cardLabel}>Nota emitida, a receber</div>
           <div className={s.cardValue}>{brl(invoicedOpen)}</div>
           <div className={s.cardHint}>Recebido até agora: {brl(paid)}</div>
@@ -146,7 +151,7 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
         <h2 className={s.sectionTitle}>Demonstrativos</h2>
         <p className={s.sectionNote}>
           Cada demonstrativo libera um valor → a clínica emite a nota → a operadora paga. Registre as notas em{' '}
-          <Link href="/financeiro/notas" style={{ color: 'var(--fin-accent)' }}>
+          <Link href="/financeiro/notas" className={s.link}>
             Notas fiscais
           </Link>
           .
@@ -176,8 +181,8 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                     <td>{dataBR(x.emission_date)}</td>
                     <td className={s.num}>{int(x.item_count)}</td>
                     <td className={s.num}>{brl(x.items_informed)}</td>
-                    <td className={s.num}>{brl(x.items_released)}</td>
-                    <td className={s.num}>{brl(x.items_gloss)}</td>
+                    <td className={s.numGood}>{brl(x.items_released)}</td>
+                    <td className={Number(x.items_gloss) > 0 ? s.numBad : s.num}>{brl(x.items_gloss)}</td>
                     <td>{x.invoice_numbers ?? '—'}</td>
                     <td>
                       <span className={st.cls}>{st.label}</span>
@@ -229,8 +234,8 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                   <td>{mesBR(m.month)}</td>
                   <td className={s.num}>{int(m.sessions)}</td>
                   <td className={s.num}>{brl(m.informed)}</td>
-                  <td className={s.num}>{brl(m.released)}</td>
-                  <td className={s.num}>{brl(m.gloss)}</td>
+                  <td className={s.numGood}>{brl(m.released)}</td>
+                  <td className={Number(m.gloss) > 0 ? s.numBad : s.num}>{brl(m.gloss)}</td>
                   <td className={s.num}>{pct(Number(m.gloss), Number(m.informed))}</td>
                   <td className={s.num}>{m.median_days_to_statement == null ? '—' : `${Math.round(Number(m.median_days_to_statement))} dias`}</td>
                 </tr>
@@ -260,7 +265,7 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                   <td>{c.gloss_code}</td>
                   <td className={s.num}>{int(c.sessions)}</td>
                   <td className={s.num}>{int(c.beneficiaries)}</td>
-                  <td className={s.num}>{brl(c.gloss)}</td>
+                  <td className={s.numBad}>{brl(c.gloss)}</td>
                   <td className={s.num}>{pct(Number(c.gloss), gloss)}</td>
                 </tr>
               ))}
@@ -290,7 +295,7 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                   <td>…{p.last4}</td>
                   <td>{[...p.codes].join(', ')}</td>
                   <td className={s.num}>{int(p.n)}</td>
-                  <td className={s.num}>{brl(p.value)}</td>
+                  <td className={s.numBad}>{brl(p.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -318,7 +323,7 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                     <td>{g.provider_guide_number}</td>
                     <td>{g.beneficiary_name}</td>
                     <td>{g.gloss_codes}</td>
-                    <td className={s.num}>{brl(g.gloss_value)}</td>
+                    <td className={s.numBad}>{brl(g.gloss_value)}</td>
                     <td>{g.statement_number}</td>
                     <td>{APPEAL[g.appeal_status] ?? g.appeal_status}</td>
                   </tr>

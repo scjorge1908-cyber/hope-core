@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { NavFinanceiro } from './nav-financeiro'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import s from './financeiro.module.css'
 
@@ -10,24 +10,18 @@ export default async function FinanceiroLayout({ children }: LayoutProps<'/finan
   return (
     <div className={s.shell}>
       <header className={s.header}>
-        <span className={s.brand}>HOPE CORE · Financeiro</span>
-        {allowed && (
-          <nav className={s.nav}>
-            <Link href="/financeiro">Painel</Link>
-            <Link href="/financeiro/agenda">Agenda</Link>
-            <Link href="/financeiro/importar">Importar XML</Link>
-            <Link href="/financeiro/notas">Notas fiscais</Link>
-            <Link href="/financeiro/repasse">Repasse (RPA)</Link>
-            {/* rota que serve o Index.html original: link comum, sem prefetch */}
-            <a href="/financeiro/guias">Registro de Guias</a>
-            <Link href="/financeiro/divergencias">Divergências</Link>
-            <Link href="/financeiro/conferencia">Conferência de guias</Link>
-            <Link href="/dashboard">Voltar ao início</Link>
-          </nav>
-        )}
-        <span className={s.muted} style={{ marginLeft: 'auto', fontSize: 13 }}>
-          {user.email}
-        </span>
+        <div className={s.headerTopo}>
+          <a href="/dashboard" className={s.brand}>
+            <span className={s.brandMarca} aria-hidden>
+              H
+            </span>
+            <span>
+              HOPE CORE <span className={s.brandModulo}>· Financeiro</span>
+            </span>
+          </a>
+          <span className={s.usuario}>{user.email}</span>
+        </div>
+        {allowed && <NavFinanceiro />}
       </header>
       <main className={s.main}>
         {allowed ? (
