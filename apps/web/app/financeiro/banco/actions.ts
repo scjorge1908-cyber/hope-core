@@ -22,7 +22,10 @@ export async function buscarAgora(fd: FormData) {
   if (!allowed) voltar(fd, { erro: 'Sem acesso ao financeiro.' })
   let texto: string
   try {
-    const r = await sincronizarBanco(supabase, 60)
+    // "desde janeiro": relê o ano todo (para confirmar os pagamentos antigos)
+    const hoje = new Date()
+    const dias = fd.get('desde') === 'ano' ? Math.ceil((hoje.getTime() - Date.UTC(hoje.getUTCFullYear(), 0, 1)) / 86_400_000) + 1 : 60
+    const r = await sincronizarBanco(supabase, dias)
     const n = r.previstos_confirmados ?? 0
     texto = `Extrato lido (${r.lancamentos_novos ?? 0} lançamento(s) novo(s)). ${n ? `${n} recebimento(s) confirmado(s) na Agenda.` : 'Nada novo para confirmar.'}`
   } catch (e) {

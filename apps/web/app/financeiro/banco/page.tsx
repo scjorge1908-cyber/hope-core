@@ -268,9 +268,14 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
           <form action={buscarAgora} style={{ marginBottom: 20 }}>
             <input type="hidden" name="inicio" value={inicio} />
             <input type="hidden" name="fim" value={fim} />
-            <button type="submit" className={s.button}>
-              Buscar pagamentos e conciliar agora
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <button type="submit" className={s.button}>
+                Buscar pagamentos e conciliar agora
+              </button>
+              <button type="submit" name="desde" value="ano" className={s.buttonSmall} style={{ minHeight: 40, padding: '9px 14px' }} title="Relê o extrato desde 1º de janeiro para confirmar pagamentos antigos">
+                Conciliar desde janeiro
+              </button>
+            </div>
           </form>
 
           <h3 className={s.sectionTitle} style={{ fontSize: 15 }}>

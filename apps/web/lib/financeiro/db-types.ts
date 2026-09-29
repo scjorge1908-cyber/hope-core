@@ -110,7 +110,7 @@ export type CashflowItemRow = {
   kind: 'entrada' | 'saida'
   insurance_plan_id: string | null
   category: string
-  source: 'orizon' | 'manual'
+  source: 'orizon' | 'manual' | 'unimed_xml'
   external_ref: string | null
   protocol: string | null
   guide_type: string | null
@@ -151,7 +151,7 @@ export type CashflowCalendarRow = {
   insurance_plan_id: string | null
   category: string
   category_order: Num
-  source: 'orizon' | 'manual' | 'nf'
+  source: 'orizon' | 'manual' | 'nf' | 'unimed_xml'
   external_ref: string | null
   reference_date: string | null
   amount: Num
@@ -342,6 +342,8 @@ export type FinanceDatabase = {
       // migration 015
       legacy_marcar_desligada: { Args: { p_spreadsheet_id: string; p_desligada: boolean }; Returns: undefined }
       // migration 016 — guias no ADM sem sessão na aba Atendimentos
+      // migration 018 — demonstrativo (XML) da Unimed vira previsto na Agenda
+      previstos_demonstrativos_sync: { Args: never; Returns: number }
       // migration 017 — banco
       bank_registrar_extrato: { Args: { p: Json }; Returns: Json }
       bank_vincular: { Args: { p_tx: string; p_origem: string; p_target: string }; Returns: undefined }

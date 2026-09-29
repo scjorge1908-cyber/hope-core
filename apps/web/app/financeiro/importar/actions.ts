@@ -94,6 +94,9 @@ export async function importarDemonstrativos(_prev: ImportState, formData: FormD
     }
   }
 
+  // demonstrativo importado → recebimento previsto na Agenda (dia 25 do mês seguinte)
+  if (outcomes.some((o) => o.ok)) await supabase.rpc('previstos_demonstrativos_sync')
   revalidatePath('/financeiro')
+  revalidatePath('/financeiro/agenda')
   return { outcomes }
 }

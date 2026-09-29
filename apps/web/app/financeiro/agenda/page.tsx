@@ -50,6 +50,9 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
     .toISOString()
     .slice(0, 10)
 
+  // garante que todo demonstrativo (XML) importado já tem o recebimento previsto na Agenda
+  await supabase.rpc('previstos_demonstrativos_sync')
+
   const [planosRes, rowsRes, saidasRes, feriadosRes, proximosRes] = await Promise.all([
     supabase
       .from('insurance_plans')
