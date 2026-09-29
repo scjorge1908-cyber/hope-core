@@ -148,3 +148,62 @@ export const chaveNome = (s: string | null) =>
     .replace(/\s+/g, ' ')
     .trim()
     .toUpperCase()
+
+// ---------------- Relatório "Guias não lançadas no ADM" ----------------
+
+export type GuiaNaoLancada = {
+  guia: string | null
+  plano: string
+  spreadsheet_id: string | null
+  datas: string[]
+  semAnexo: number
+  statusS: string[]
+}
+
+export type PacienteNaoLancado = { paciente: string; guias: GuiaNaoLancada[]; sessoes: number }
+export type PsicologaNaoLancada = { psicologa: string; spreadsheet_id: string | null; pacientes: PacienteNaoLancado[]; guias: number; sessoes: number }
+
+/**
+ * Sessões REALIZADAS (não falta) cuja guia não está no ADM Registro de Guia,
+ * agrupadas psicóloga → paciente → guia (com as datas das sessões).
+ * `incluirSemGuia`: inclui também sessões sem número de guia na coluna E.
+ */
+export function agruparNaoLancadas(linhas: LinhaConferencia[], incluirSemGuia = true): PsicologaNaoLancada[] {
+  const psis = new Map<string, { psicologa: string; spreadsheet_id: string | null; pac: Map<string, Map<string, GuiaNaoLancada>> }>()
+  for (const l of linhas) {
+    if (l.origem !== 'sessao' || l.status_classe === 'falta') continue
+    const ps = problemas(l)
+    const naoLancada = ps.includes('fora_do_adm') || (incluirSemGuia && ps.includes('sem_guia'))
+    if (!naoLancada) continue
+    const nome = l.psicologa || '(sem psicóloga)'
+    const p = psis.get(nome) ?? { psicologa: nome, spreadsheet_id: l.spreadsheet_id, pac: new Map() }
+    const paciente = (l.paciente || '(sem nome)').trim()
+    const guias = p.pac.get(paciente) ?? new Map<string, GuiaNaoLancada>()
+    const chave = l.guia || '__sem_guia__'
+    const g = guias.get(chave) ?? { guia: l.guia || null, plano: normalizarPlano(l.plano), spreadsheet_id: l.spreadsheet_id, datas: [], semAnexo: 0, statusS: [] }
+    if (l.data_sessao && !g.datas.includes(l.data_sessao)) g.datas.push(l.data_sessao)
+    if (l.anexo === 'nao') g.semAnexo++
+    if (l.status_s && !g.statusS.includes(l.status_s)) g.statusS.push(l.status_s)
+    guias.set(chave, g)
+    p.pac.set(paciente, guias)
+    psis.set(nome, p)
+  }
+  const cmp = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+  return [...psis.values()]
+    .map((p) => {
+      const pacientes = [...p.pac.entries()]
+        .map(([paciente, gs]) => {
+          const guias = [...gs.values()].map((g) => ({ ...g, datas: g.datas.sort() })).sort((a, b) => cmp(a.datas[0] ?? '', b.datas[0] ?? ''))
+          return { paciente, guias, sessoes: guias.reduce((t, g) => t + Math.max(g.datas.length, 1), 0) }
+        })
+        .sort((a, b) => cmp(a.paciente, b.paciente))
+      return {
+        psicologa: p.psicologa,
+        spreadsheet_id: p.spreadsheet_id,
+        pacientes,
+        guias: pacientes.reduce((t, x) => t + x.guias.length, 0),
+        sessoes: pacientes.reduce((t, x) => t + x.sessoes, 0),
+      }
+    })
+    .sort((a, b) => b.guias - a.guias || cmp(a.psicologa, b.psicologa))
+}

@@ -16,6 +16,7 @@ const ITENS: Item[] = [
   { href: '/financeiro/guias', label: 'Registro de Guias', comum: true },
   { href: '/financeiro/divergencias', label: 'Divergências' },
   { href: '/financeiro/conferencia', label: 'Conferência de guias' },
+  { href: '/financeiro/nao-lancadas', label: 'Guias não lançadas' },
 ]
 
 /** Abas do financeiro com a página atual destacada. */

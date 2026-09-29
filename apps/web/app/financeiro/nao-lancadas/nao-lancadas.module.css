@@ -1,0 +1,84 @@
+.filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 16px;
+  max-width: 960px;
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.bloco {
+  break-inside: avoid-page;
+}
+
+.topoBloco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-bottom: 14px;
+}
+
+.contagem {
+  font-size: 13px;
+  color: var(--fin-muted);
+}
+
+.topoBloco a {
+  margin-left: auto;
+  font-size: 13px;
+}
+
+.primeira td {
+  border-top: 1px solid var(--fin-border-strong, #d1d5db);
+}
+
+.paciente {
+  font-weight: 600;
+}
+
+.guia {
+  font-family: var(--font-geist-mono, ui-monospace), monospace;
+  font-size: 13px;
+}
+
+.abrir {
+  margin-left: 8px;
+  color: var(--fin-accent);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.datas {
+  white-space: normal !important;
+  min-width: 160px;
+  max-width: 320px;
+  color: var(--fin-muted);
+  font-size: 13px;
+}
+
+.soImpressao {
+  display: none;
+}
+
+.naoImprimir {
+  display: revert;
+}
+
+@media print {
+  .naoImprimir {
+    display: none !important;
+  }
+  .soImpressao {
+    display: block;
+    margin-bottom: 16px;
+  }
+}

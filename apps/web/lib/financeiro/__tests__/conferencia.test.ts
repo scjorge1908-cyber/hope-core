@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chaveNome, normalizarPlano, problemas, resumir, type LinhaConferencia } from '../conferencia'
+import { agruparNaoLancadas, chaveNome, normalizarPlano, problemas, resumir, type LinhaConferencia } from '../conferencia'
 
 const base: LinhaConferencia = {
   origem: 'sessao', spreadsheet_id: 's1', psicologa: 'PSI A', paciente: 'X', data_sessao: '2026-08-10', guia: '50140000001',
@@ -51,5 +51,30 @@ describe('auxiliares', () => {
     expect(normalizarPlano('unimed')).toBe('Unimed')
     expect(normalizarPlano('select')).toBe('Select')
     expect(chaveNome('  Psi  Gabriélla ')).toBe(chaveNome('PSI GABRIELLA'))
+  })
+})
+
+describe('agruparNaoLancadas', () => {
+  const fora = { admin_registrou: false, operadora_status: 'aguardando' as const }
+  it('agrupa psicóloga → paciente → guia com as datas, ignora falta e lançadas', () => {
+    const r = agruparNaoLancadas([
+      base, // lançada
+      l({ ...fora, guia: '501', paciente: 'Ana', data_sessao: '2026-08-12' }),
+      l({ ...fora, guia: '501', paciente: 'Ana', data_sessao: '2026-08-05', anexo: 'nao' }),
+      l({ ...fora, guia: '502', paciente: 'Bia', data_sessao: '2026-08-07' }),
+      l({ ...fora, guia: '503', paciente: 'Bia', status_classe: 'falta', status_s: 'FALTA' }), // falta: fora
+      l({ ...fora, psicologa: 'PSI B', guia: '', paciente: 'Caio', data_sessao: '2026-08-09' }), // sem guia
+    ])
+    expect(r.map((p) => [p.psicologa, p.guias, p.sessoes])).toEqual([
+      ['PSI A', 2, 3],
+      ['PSI B', 1, 1],
+    ])
+    expect(r[0].pacientes[0]).toMatchObject({ paciente: 'Ana', sessoes: 2 })
+    expect(r[0].pacientes[0].guias[0]).toMatchObject({ guia: '501', datas: ['2026-08-05', '2026-08-12'], semAnexo: 1 })
+    expect(r[1].pacientes[0].guias[0].guia).toBeNull()
+  })
+  it('sem incluir as sem nº de guia', () => {
+    const r = agruparNaoLancadas([l({ ...fora, guia: '', paciente: 'Caio' })], false)
+    expect(r).toEqual([])
   })
 })
