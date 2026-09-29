@@ -2,6 +2,11 @@ import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { ImportForm } from './import-form'
 import s from '../financeiro.module.css'
 
+// Vale para a Server Action de importação desta página: até 12 arquivos,
+// cada um gravado numa transação própria no banco (limite de 60 s por
+// arquivo na função import_claim_statement — migration 007).
+export const maxDuration = 60
+
 export default async function ImportarPage() {
   const { allowed } = await requireFinanceAccess()
   if (!allowed) return null
