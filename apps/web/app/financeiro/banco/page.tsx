@@ -177,9 +177,17 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
                 <input type="date" name="fim" defaultValue={fim} />
               </label>
             </div>
-            <button type="submit" className={s.button}>
-              Ver extrato
-            </button>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <button type="submit" className={s.button}>
+                Ver extrato
+              </button>
+              <a className={s.buttonSmall} style={{ minHeight: 40, padding: '9px 14px' }} href={`/financeiro/banco/extrato?${new URLSearchParams({ inicio, fim, formato: 'xlsx' })}`} download>
+                ⬇ Baixar Excel
+              </a>
+              <a className={s.buttonSmall} style={{ minHeight: 40, padding: '9px 14px' }} href={`/financeiro/banco/extrato?${new URLSearchParams({ inicio, fim, formato: 'pdf' })}`} download>
+                ⬇ Baixar PDF
+              </a>
+            </div>
           </form>
 
           <div className={s.cards}>
