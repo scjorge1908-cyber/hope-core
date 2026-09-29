@@ -280,6 +280,8 @@ export type FinanceDatabase = {
       import_orizon_lotes: { Args: { p: Json }; Returns: Json }
       // migration 012 — painel de gestão
       painel_gestao: { Args: never; Returns: Json }
+      // migration 013 — conferência de guias (3 pontas)
+      conferencia_guias: { Args: { p_ano: number; p_mes: number }; Returns: import('./conferencia').LinhaConferencia[] }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

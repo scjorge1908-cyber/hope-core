@@ -21,6 +21,7 @@ export default async function FinanceiroLayout({ children }: LayoutProps<'/finan
             {/* rota que serve o Index.html original: link comum, sem prefetch */}
             <a href="/financeiro/guias">Registro de Guias</a>
             <Link href="/financeiro/divergencias">Divergências</Link>
+            <Link href="/financeiro/conferencia">Conferência de guias</Link>
             <Link href="/dashboard">Voltar ao início</Link>
           </nav>
         )}
