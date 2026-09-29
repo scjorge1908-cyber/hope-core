@@ -134,3 +134,59 @@ export async function extratoCora(cfg: ConfigCora, inicio: string, fim: string):
   }
   return total ?? { entries: [] }
 }
+
+// ---------------- diagnóstico (sem revelar segredos) ----------------
+
+export type DiagnosticoCora = {
+  ambiente: string
+  clientId: string
+  certAssunto: string | null
+  certCN: string | null
+  certEmissor: string | null
+  certValidoAte: string | null
+  certVencido: boolean | null
+  chaveCombina: boolean | null
+  cnIgualClientId: boolean | null
+  erroCert: string | null
+}
+
+/** "abcd…wxyz (36)" — suficiente para conferir sem expor o valor inteiro. */
+export function mascarar(v: string): string {
+  if (v.length <= 8) return `${'•'.repeat(v.length)} (${v.length})`
+  return `${v.slice(0, 4)}…${v.slice(-4)} (${v.length} caracteres)`
+}
+
+export async function diagnosticoCora(cfg: ConfigCora): Promise<DiagnosticoCora> {
+  const base: DiagnosticoCora = {
+    ambiente: cfg.ambiente,
+    clientId: mascarar(cfg.clientId),
+    certAssunto: null,
+    certCN: null,
+    certEmissor: null,
+    certValidoAte: null,
+    certVencido: null,
+    chaveCombina: null,
+    cnIgualClientId: null,
+    erroCert: null,
+  }
+  try {
+    const { X509Certificate, createPrivateKey } = await import('node:crypto')
+    const x = new X509Certificate(cfg.cert)
+    const cn = /CN=([^\n,]+)/.exec(x.subject)?.[1]?.trim() ?? null
+    base.certAssunto = x.subject.replace(/\n/g, ', ')
+    base.certCN = cn ? mascarar(cn) : null
+    base.certEmissor = x.issuer.replace(/\n/g, ', ')
+    base.certValidoAte = x.validTo
+    base.certVencido = new Date(x.validTo).getTime() < Date.now()
+    base.cnIgualClientId = cn ? cn === cfg.clientId : null
+    try {
+      base.chaveCombina = x.checkPrivateKey(createPrivateKey(cfg.key))
+    } catch (e) {
+      base.chaveCombina = false
+      base.erroCert = `Chave privada inválida: ${(e as Error).message}`
+    }
+  } catch (e) {
+    base.erroCert = `Certificado inválido: ${(e as Error).message}`
+  }
+  return base
+}

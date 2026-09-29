@@ -2,7 +2,7 @@ import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, dataBR, int } from '@/lib/financeiro/format'
 import { hojeSaoPaulo } from '@/lib/financeiro/agenda'
-import { configCora, extratoCora, saldoCora, type ExtratoCora } from '@/lib/cora/cliente'
+import { configCora, diagnosticoCora, extratoCora, saldoCora, type DiagnosticoCora, type ExtratoCora } from '@/lib/cora/cliente'
 import s from '../financeiro.module.css'
 
 export const metadata = { title: 'Banco (Cora) — HOPE CORE' }
@@ -28,6 +28,7 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
   const inicio = ISO.test(String(sp.inicio)) ? String(sp.inicio) : somarDias(fim, -30)
 
   const cfg = configCora()
+  const diag: DiagnosticoCora | null = cfg ? await diagnosticoCora(cfg) : null
   let saldo: number | null = null
   let extrato: ExtratoCora | null = null
   let erro: string | null = null
@@ -65,6 +66,61 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
         </p>
       )}
       {erro && <div className={s.alertBad}>Erro ao falar com o Cora: {erro}</div>}
+
+      {cfg && diag && (erro || sp.diag === '1') && (
+        <section className={s.section}>
+          <h2 className={s.sectionTitle}>Diagnóstico das credenciais</h2>
+          <p className={s.sectionNote}>Mostra só pedaços dos valores, para conferir com o Cora sem expor nada.</p>
+          <div className={s.tableWrap}>
+            <table className={s.table}>
+              <tbody>
+                <tr>
+                  <td>Ambiente (CORA_AMBIENTE)</td>
+                  <td>{diag.ambiente === 'producao' ? 'Produção' : 'Teste (Stage)'}</td>
+                </tr>
+                <tr>
+                  <td>Client ID (CORA_CLIENT_ID)</td>
+                  <td>{diag.clientId}</td>
+                </tr>
+                <tr>
+                  <td>Certificado — nome (CN)</td>
+                  <td>{diag.certCN ?? '—'}</td>
+                </tr>
+                <tr>
+                  <td>CN do certificado = Client ID?</td>
+                  <td>
+                    {diag.cnIgualClientId == null ? '—' : diag.cnIgualClientId ? <span className={s.badgeGood}>sim</span> : <span className={s.badgeBad}>não — são de credenciais diferentes</span>}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Chave privada combina com o certificado?</td>
+                  <td>
+                    {diag.chaveCombina == null ? '—' : diag.chaveCombina ? <span className={s.badgeGood}>sim</span> : <span className={s.badgeBad}>não</span>}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Certificado válido até</td>
+                  <td>
+                    {diag.certValidoAte ?? '—'} {diag.certVencido ? <span className={s.badgeBad}>vencido</span> : null}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Emissor do certificado</td>
+                  <td style={{ whiteSpace: 'normal' }}>{diag.certEmissor ?? '—'}</td>
+                </tr>
+                {diag.erroCert && (
+                  <tr>
+                    <td>Problema</td>
+                    <td className={s.numBad} style={{ textAlign: 'left' }}>
+                      {diag.erroCert}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {cfg && !erro && (
         <>
