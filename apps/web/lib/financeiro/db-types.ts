@@ -48,6 +48,38 @@ export type ClaimMonthlySummaryRow = {
   max_days_to_statement: Num | null
 }
 
+// migration 010 — o que a Unimed fez com cada guia (guia do prestador)
+export type ClaimStatusPorGuiaRow = {
+  guia: string
+  sessoes: Num
+  informado: Num
+  liberado: Num
+  glosado: Num
+  codigos_glosa: string | null
+  demonstrativos: string | null
+  ultima_emissao: string | null
+  datas_sessao: string | null
+}
+
+// migration 010 — divergências planilhas × Unimed
+export type GuiaDivergenciaRow = {
+  tipo: 'ok_glosado' | 'pago_sem_ok' | 'falta_faturada'
+  spreadsheet_id: string
+  psicologa: string | null
+  guia: string
+  paciente: string
+  datas_planilha: string | null
+  status_planilha: string
+  mes: Num | null
+  ano: Num | null
+  informado: Num
+  liberado: Num
+  glosado: Num
+  codigos_glosa: string | null
+  demonstrativos: string | null
+  datas_unimed: string | null
+}
+
 export type ClaimGlossByCodeRow = {
   tenant_id: string
   insurance_plan_id: string
@@ -161,6 +193,10 @@ export type FinanceDatabase = {
       // migration 008 — ponte das planilhas
       legacy_rpa_base: { Args: never; Returns: Json }
       legacy_sync_status: { Args: never; Returns: LegacySyncStatusRow[] }
+      // migration 010 — Registro de Guias
+      legacy_registro_espelhar: { Args: { p: Json }; Returns: Json }
+      claim_status_por_guias: { Args: { p_guias: string[] }; Returns: ClaimStatusPorGuiaRow[] }
+      guia_divergencias: { Args: never; Returns: GuiaDivergenciaRow[] }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

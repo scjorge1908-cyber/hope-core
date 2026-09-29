@@ -17,6 +17,9 @@ export default async function FinanceiroLayout({ children }: LayoutProps<'/finan
             <Link href="/financeiro/importar">Importar XML</Link>
             <Link href="/financeiro/notas">Notas fiscais</Link>
             <Link href="/financeiro/repasse">Repasse (RPA)</Link>
+            {/* rota que serve o Index.html original: link comum, sem prefetch */}
+            <a href="/financeiro/guias">Registro de Guias</a>
+            <Link href="/financeiro/divergencias">Divergências</Link>
             <Link href="/dashboard">Voltar ao início</Link>
           </nav>
         )}

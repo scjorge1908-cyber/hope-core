@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hope - Gestão de Guias</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e3a8a; --primary-light: #2d4a9e; --primary-dark: #152a6b;
+            --secondary: #3b82f6; --secondary-light: #60a5fa;
+            --bg: #f0f4f8; --bg-warm: #fafbfd; --white: #ffffff;
+            --border: #dde3ed; --border-light: #e8edf5;
+            --text: #1e293b; --text-muted: #64748b;
+            --success: #10b981; --success-light: #d1fae5;
+            --danger: #ef4444; --danger-light: #fee2e2;
+            --warning: #f59e0b; --warning-light: #fef3c7;
+            --glosa: #0ea5e9; --glosa-light: #e0f2fe;
+            --glosa-pendente: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(30,58,138,0.08);
+            --shadow-md: 0 4px 12px rgba(30,58,138,0.1);
+            --shadow-lg: 0 8px 30px rgba(30,58,138,0.12);
+            --radius: 10px; --radius-lg: 16px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { box-sizing: border-box; outline: none; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 20%, rgba(30,58,138,0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(59,130,246,0.03) 0%, transparent 50%); pointer-events: none; z-index: 0; }
+        .topbar { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 50%, var(--primary) 100%); color: white; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 20px rgba(30,58,138,0.25); }
+        .topbar-brand { display: flex; align-items: center; gap: 14px; }
+        .topbar-logo { width: 42px; height: 42px; border-radius: 10px; background: rgba(255,255,255,0.2); padding: 4px; display: flex; align-items: center; justify-content: center; }
+        .topbar-logo img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1); }
+        .topbar-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; }
+        .topbar-subtitle { font-size: 0.72rem; opacity: 0.7; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .topbar-time { display: flex; align-items: center; gap: 14px; font-family: 'Courier New', 'Lucida Console', monospace; background: linear-gradient(135deg, rgba(0,0,0,0.65), rgba(10,20,50,0.75)); padding: 8px 18px; border-radius: 14px; border: 1px solid rgba(74,222,128,0.25); box-shadow: inset 0 2px 8px rgba(0,0,0,0.5), 0 0 16px rgba(74,222,128,0.1); white-space: nowrap; }
+        .clock-date { font-size: 0.85rem; font-weight: 700; color: #60a5fa; letter-spacing: 1px; text-shadow: 0 0 8px rgba(96,165,250,0.4); }
+        .clock-sep { width: 1px; height: 28px; background: rgba(255,255,255,0.15); }
+        .clock-time { font-size: 1.6rem; font-weight: 900; color: #4ade80; letter-spacing: 3px; text-shadow: 0 0 12px rgba(74,222,128,0.6), 0 0 30px rgba(74,222,128,0.15); }
+        .clock-time .clock-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0.3; } }
+        .container { max-width: 100%; padding: 20px; position: relative; z-index: 1; animation: fadeInUp 0.5s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); margin-bottom: 20px; border: 1px solid var(--border-light); overflow: hidden; transition: var(--transition); }
+        .card:hover { box-shadow: var(--shadow-lg); }
+        .card-header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: var(--white); padding: 14px 22px; display: flex; align-items: center; gap: 12px; }
+        .card-header h2 { margin: 0; font-family: 'DM Sans', sans-serif; font-size: 1.05rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .card-header .material-icons { font-size: 1.4rem; opacity: 0.9; }
+        .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; padding: 22px; align-items: end; background: var(--bg-warm); }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; }
+        .filter-group label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        .filter-select, .filter-input { padding: 10px 14px; border: 1.5px solid var(--border); border-radius: var(--radius); font-size: 0.95rem; background: var(--white); height: 44px; font-family: 'DM Sans', sans-serif; transition: var(--transition); color: var(--text); }
+        .filter-select:focus, .filter-input:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        .btn { padding: 0 20px; height: 44px; border: none; border-radius: var(--radius); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; font-family: 'DM Sans', sans-serif; transition: var(--transition); letter-spacing: 0.3px; position: relative; overflow: hidden; }
+        .btn::after { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255,255,255,0.2); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s, height 0.4s; }
+        .btn:active::after { width: 200px; height: 200px; }
+        .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+        .btn-primary { background: var(--secondary); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-glosa { background: var(--glosa); color: white; }
+        .btn-glosa-pendente { background: var(--glosa-pendente); color: white; }
+        .btn-sm { height: 34px; padding: 0 14px; font-size: 0.82rem; }
+        .table-wrapper { overflow-x: auto; padding: 0; }
+        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; table-layout: fixed; }
+        .data-table th { background: linear-gradient(to bottom, #f8fafc, #f1f5f9); padding: 12px 6px; text-align: center; font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.8px; border-bottom: 2px solid var(--primary); border-right: 1px solid var(--border-light); position: sticky; top: 0; z-index: 10; }
+        .col-paciente { width: 25%; text-align: left !important; padding-left: 16px !important; }
+        .col-semana { width: 15%; }
+        .data-table td { padding: 8px 3px; border-bottom: 1px solid var(--border-light); border-right: 1px solid rgba(0,0,0,0.02); vertical-align: middle; text-align: center; transition: background 0.15s; }
+        .data-table tbody tr:hover td { background-color: rgba(59,130,246,0.04); }
+        .paciente-cell { display: flex; align-items: center; gap: 8px; padding: 4px 0; min-height: 42px; }
+        .paciente-info { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; overflow: hidden; }
+        .texto-paciente { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.92rem; color: var(--primary); font-weight: 700; flex-shrink: 1; min-width: 0; }
+        .texto-plano { color: var(--text-muted); font-weight: 600; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; letter-spacing: 0.3px; }
+        .btn-whatsapp { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: #25D366; color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 6px rgba(37,211,102,0.3); position: relative; }
+        .btn-whatsapp:hover { background: #128C7E; transform: scale(1.1); box-shadow: 0 3px 10px rgba(37,211,102,0.4); }
+        .btn-whatsapp:active { transform: scale(0.95); }
+        .btn-whatsapp .material-icons { font-size: 18px; }
+        .btn-whatsapp.loading { background: #94a3b8; pointer-events: none; }
+        .btn-whatsapp.loading .material-icons { animation: spin 0.7s linear infinite; }
+        .row-alta td { background-color: #fef2f2 !important; }
+        .row-alta .texto-paciente, .row-alta .texto-plano { color: #dc2626 !important; font-weight: 800; }
+        .row-alta .texto-plano { background: #fee2e2; }
+        .row-alta .input-guia { border-color: #fca5a5; color: #b91c1c; background-color: #fff; font-weight: 800; }
+        .row-alta .btn-whatsapp { background: #f87171; box-shadow: 0 2px 6px rgba(239,68,68,0.3); }
+        .row-alta .btn-whatsapp:hover { background: #dc2626; }
+        .week-cell { display: flex; justify-content: center; gap: 4px; }
+        .input-group { display: flex; flex-direction: column; align-items: center; width: 48%; position: relative; }
+        .input-guia { width: 100%; padding: 3px; border: 1.5px solid var(--border); border-radius: 6px; text-align: center; font-family: 'DM Sans', monospace; font-weight: 700; color: var(--text); font-size: 0.92rem; height: 38px; transition: var(--transition); background: var(--white); }
+        .input-guia:focus { border-color: var(--primary); z-index: 2; position: relative; border-width: 2px; box-shadow: 0 0 0 3px rgba(30,58,138,0.1); }
+        .status-badge { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; display: block; margin-top: 3px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; padding: 2px 4px; border-radius: 4px; letter-spacing: 0.5px; }
+        .input-faturada { background: var(--success-light) !important; border-color: var(--success) !important; color: #065f46 !important; }
+        .badge-faturada { color: #065f46; background: var(--success-light); }
+        .input-registrada { background: #fff7ed !important; border-color: #f97316 !important; color: #9a3412 !important; }
+        .badge-registrada { color: #9a3412; background: #fff7ed; }
+        .input-excluida { background: var(--danger-light) !important; border-color: var(--danger) !important; color: #991b1b !important; text-decoration: line-through; }
+        .badge-excluida { color: #991b1b; background: var(--danger-light); }
+        
+        /* EXCLUÍDO - AMARELO ESCURO */
+        .input-excluido {
+            background: #fcd34d !important;
+            border-color: #b45309 !important;
+            color: #78350f !important;
+            font-weight: bold !important;
+        }
+        .badge-excluido {
+            background: #fcd34d !important;
+            color: #78350f !important;
+            font-weight: bold !important;
+        }
+        
+        .input-glosa { background: var(--glosa-light) !important; border-color: var(--glosa) !important; color: #0369a1 !important; border-width: 2px !important; }
+        .badge-glosa { color: white; background: var(--glosa) !important; font-weight: bold !important; }
+        .input-glosa-pendente { background: var(--warning-light) !important; border-color: var(--warning) !important; color: #92400e !important; border-width: 2px !important; border-style: dashed !important; }
+        .badge-glosa-pendente { color: white; background: var(--warning) !important; font-weight: bold !important; }
+        .saving-indicator { font-size: 0.68rem; color: var(--text-muted); height: 14px; margin-top: 2px; opacity: 0; transition: opacity 0.2s; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .saving-indicator.active { opacity: 1; color: var(--secondary); }
+        .saving-indicator.saved { opacity: 1; color: var(--success); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.6); z-index: 999; display: none; backdrop-filter: blur(4px); animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-container { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 92%; max-width: 1100px; height: 85vh; background: var(--white); border-radius: var(--radius-lg); z-index: 1000; display: none; flex-direction: column; box-shadow: 0 25px 60px rgba(15,23,42,0.3); overflow: hidden; animation: modalIn 0.3s ease; }
+        @keyframes modalIn { from { opacity: 0; transform: translate(-50%, -48%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+        .modal-header { padding: 16px 22px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, #fafbfd, #f5f7fa); }
+        .modal-body { flex: 1; display: flex; overflow: hidden; }
+        .modal-sidebar { width: 340px; border-right: 1px solid var(--border-light); background: var(--bg-warm); display: flex; flex-direction: column; }
+        .sessoes-list { flex: 1; overflow-y: auto; padding: 16px; }
+        .sessao-item { padding: 14px; border: 1.5px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; cursor: pointer; transition: var(--transition); font-size: 0.9rem; background: var(--white); }
+        .sessao-item:hover { border-color: var(--secondary-light); box-shadow: var(--shadow-sm); }
+        .sessao-item.active { border-color: var(--primary); border-left-width: 5px; background: #eff6ff; box-shadow: var(--shadow-sm); }
+        .sessao-item.status-ok { background-color: var(--success-light) !important; border-color: var(--success) !important; }
+        .sessao-item.status-obs { background-color: var(--danger-light) !important; border-color: var(--danger) !important; }
+        .sessao-item.status-glosa { background-color: var(--glosa-light) !important; border-color: var(--glosa) !important; }
+        .card-controls { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .card-obs-input { width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 6px; margin-bottom: 8px; font-size: 0.85rem; font-family: 'DM Sans', sans-serif; transition: var(--transition); }
+        .card-obs-input:focus { border-color: var(--secondary); }
+        .card-btns { display: flex; gap: 6px; }
+        .btn-card-action { flex: 1; border: none; border-radius: 6px; padding: 8px; color: white; font-weight: 700; cursor: pointer; font-size: 0.75rem; transition: var(--transition); letter-spacing: 0.3px; font-family: 'DM Sans', sans-serif; }
+        .btn-card-action:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .modal-viewer { flex: 1; background: #0f172a; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        #viewerImage { max-width: 95%; max-height: 95%; transition: transform 0.25s ease; box-shadow: 0 0 30px rgba(0,0,0,0.4); border-radius: 4px; }
+        #viewerIframe { transition: transform 0.25s ease; }
+        #viewerDragLayer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 5; display: none; cursor: grab; touch-action: none; background: transparent; }
+        #viewerDragLayer.dragging { cursor: grabbing; }
+        .viewer-controls { position: absolute; bottom: 20px; background: rgba(15,23,42,0.92); padding: 10px 24px; border-radius: 30px; display: flex; gap: 16px; z-index: 1010; border: 1px solid rgba(255,255,255,0.1); }
+        .control-btn { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; padding: 5px; transform: scale(1.2); transition: var(--transition); }
+        .control-btn:hover { color: var(--secondary-light); }
+        .viewer-status { color: rgba(255,255,255,0.75); text-align: center; }
+        .viewer-status a { color: #60a5fa; }
+        .modal-glosa { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: var(--radius-lg); box-shadow: 0 25px 60px rgba(15,23,42,0.3); z-index: 1002; min-width: 380px; max-width: 90vw; display: none; animation: modalIn 0.3s ease; }
+        .overlay-glosa { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.65); z-index: 1001; display: none; }
+        .glosa-options { margin: 15px 0; }
+        .glosa-option { padding: 12px 16px; margin: 8px 0; border: 1.5px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: var(--transition); background: var(--white); }
+        .glosa-option:hover { background: #f8fafc; border-color: var(--secondary-light); }
+        .glosa-option.selected { background: var(--glosa-light); border-color: var(--glosa); color: #0369a1; font-weight: bold; box-shadow: var(--shadow-sm); }
+        .btn-glosa-indicator { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; background: var(--glosa); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; cursor: pointer; z-index: 5; box-shadow: 0 2px 6px rgba(14,165,233,0.4); transition: var(--transition); border: 2px solid white; }
+        .btn-glosa-indicator:hover { transform: scale(1.15); }
+        .btn-glosa-indicator.pendente { background: var(--warning); box-shadow: 0 2px 6px rgba(245,158,11,0.4); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        #messageContainer { position: fixed; top: 74px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 420px; }
+        .message { padding: 14px 18px; border-radius: var(--radius); font-size: 0.85rem; display: flex; align-items: center; gap: 10px; animation: slideInRight 0.35s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid; box-shadow: var(--shadow-lg); font-weight: 500; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        .message.error { background: #fef2f2; border-color: var(--danger); color: #991b1b; }
+        .message.success { background: #f0fdf4; border-color: var(--success); color: #065f46; }
+        .message.warning { background: #fffbeb; border-color: var(--warning); color: #92400e; }
+        .message.info { background: #f0f9ff; border-color: var(--glosa); color: #0369a1; }
+        .watermark { position: fixed; bottom: 20px; right: 20px; opacity: 0.04; pointer-events: none; z-index: 0; width: 250px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) {
+            .topbar { padding: 0 14px; height: 56px; }
+            .topbar-title { font-size: 1.15rem; }
+            .topbar-subtitle { display: none; }
+            .topbar-time { padding: 4px 10px; }
+            .clock-date { font-size: 0.7rem; }
+            .clock-time { font-size: 1rem; letter-spacing: 1px; }
+            .container { padding: 12px; }
+            .filters-grid { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+            .modal-container { width: 98%; height: 92vh; border-radius: 12px; }
+            .modal-sidebar { width: 100%; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--border); }
+            .modal-body { flex-direction: column; }
+            .modal-glosa { min-width: 90vw; }
+            #messageContainer { right: 10px; left: 10px; max-width: none; }
+        }
+        .install-banner { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 16px 20px; z-index: 9998; box-shadow: 0 -4px 20px rgba(0,0,0,0.2); align-items: center; justify-content: space-between; gap: 12px; }
+        .install-banner button { background: white; color: var(--primary); border: none; padding: 8px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+        .install-banner .dismiss { background: transparent; color: rgba(255,255,255,0.7); padding: 8px; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-brand">
+            <div class="topbar-logo">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH6AkBDCcVFwAAABl0RVh0Q29tbWVudABDcmVhdGVkIHdpdGggR0lNUFeBDhcAAAAeSURBVGje7cExAQAAAMKg9U9tCy+gAAAAAAAAAAAAAHgaMQABnAABjwAAAABJRU5ErkJggg==" alt="Hope">
+            </div>
+            <div>
+                <div class="topbar-title">Hope</div>
+                <div class="topbar-subtitle">Sistema de Gestão de Guias</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="topbar-time" id="clockDisplay">
+                <span class="clock-date" id="clockDate"></span>
+                <span class="clock-sep"></span>
+                <span class="clock-time" id="clockTime"></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageContainer"></div>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <span class="material-icons">filter_alt</span>
+                <h2>Filtros</h2>
+            </div>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Psicóloga</label>
+                    <select id="selectPsicologa" class="filter-select" onchange="atualizarListaPacientes()"><option value="">Carregando...</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>Mês / Ano</label>
+                    <div style="display:flex;gap:10px;">
+                        <select id="selectMes" class="filter-select" style="flex:2;" onchange="atualizarListaPacientes()">
+                            <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                            <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                            <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                            <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+                        </select>
+                        <input type="number" id="selectAno" class="filter-input" value="2026" style="flex:1;" onchange="atualizarListaPacientes()">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Paciente</label>
+                    <select id="selectPaciente" class="filter-select"><option value="todos">Selecione a Psicóloga...</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="buscarDados()" id="btnBuscar">
+                            <span class="material-icons" style="font-size:20px;">search</span> Buscar
+                        </button>
+                        <button class="btn btn-danger" onclick="gerarPDF()" id="btnPdf">
+                            <span class="material-icons" style="font-size:20px;">picture_as_pdf</span> PDF
+                        </button>
+                        <button class="btn btn-glosa-pendente" onclick="verificarGlosasPendentes()" id="btnVerificarGlosas" title="Verificar glosas pendentes">
+                            <span class="material-icons" style="font-size:20px;">autorenew</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="cardDados" style="display:none;">
+            <div class="card-header">
+                <span class="material-icons">assignment</span>
+                <h2>Guias</h2>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table" id="tabelaPrincipal">
+                    <thead>
+                        <tr>
+                            <th class="col-paciente">Paciente — Plano</th>
+                            <th class="col-semana">1ª Semana</th>
+                            <th class="col-semana">2ª Semana</th>
+                            <th class="col-semana">3ª Semana</th>
+                            <th class="col-semana">4ª Semana</th>
+                            <th class="col-semana">5ª Semana</th>
+                            <th id="thBtnAddSemana" style="width:42px;background:var(--primary);text-align:center;cursor:pointer;padding:0;" onclick="adicionarSemanaExtra()" title="Adicionar Guia Extra">
+                                <span class="material-icons" style="color:#fff;font-size:24px;line-height:1;">add_circle</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-container" id="modalContainer">
+        <div class="modal-header" style="padding:14px 18px;gap:0;">
+            <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;overflow:hidden;">
+                <button class="btn-whatsapp" id="modalBtnWhatsapp" onclick="whatsappDoModal()" title="WhatsApp do paciente" style="flex-shrink:0;width:38px;height:38px;">
+                    <span class="material-icons" style="font-size:22px;">chat</span>
+                </button>
+                <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;flex-wrap:nowrap;overflow:hidden;">
+                    <span style="font-size:1.25rem;color:var(--primary);font-weight:800;white-space:nowrap;">Guia: <span id="modalGuiaNum" style="color:var(--secondary);"></span></span>
+                    <span style="color:var(--border);font-size:1.3rem;">|</span>
+                    <span id="modalPacienteNome" style="font-weight:700;font-size:1.2rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+                    <span style="color:var(--border);font-size:1.3rem;" id="modalSepAgenda">|</span>
+                    <span id="modalAgendaInfo" style="font-size:1.15rem;color:var(--secondary);font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:4px;"></span>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:10px;">
+                <button class="btn btn-warning btn-sm" id="btnBaixarGuiaMedica" onclick="baixarGuiaMedica()" style="display:none;height:38px;font-size:0.85rem;padding:0 16px;" title="Baixar Guia Médica">
+                    <span class="material-icons" style="font-size:18px;">description</span> Guia Médica
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="fecharModal()" style="height:38px;min-width:38px;padding:0 10px;">
+                    <span class="material-icons" style="font-size:20px;">close</span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-sidebar">
+                <div class="sessoes-list" id="sessoesList"></div>
+            </div>
+            <div class="modal-viewer" id="modalViewer">
+                <div id="viewerPlaceholder" style="color:rgba(255,255,255,0.4);text-align:center;">
+                    <span class="material-icons" style="font-size:64px;">image</span><br>
+                    <span style="font-size:0.9rem;">Selecione um item ao lado</span>
+                </div>
+                <img id="viewerImage" style="display:none;">
+                <iframe id="viewerIframe" style="display:none;width:100%;height:100%;border:none;"></iframe>
+                <div id="viewerDragLayer" title="Arraste para navegar pela imagem"></div>
+                <div class="viewer-controls" id="viewerControls" style="display:none;">
+                    <button class="control-btn" onclick="zoomOut()" title="Reduzir"><span class="material-icons">remove</span></button>
+                    <button class="control-btn" onclick="resetViewer()" title="Resetar"><span class="material-icons">restart_alt</span></button>
+                    <button class="control-btn" onclick="zoomIn()" title="Aumentar"><span class="material-icons">add</span></button>
+                    <button class="control-btn" onclick="rotateLeft()" title="Girar Esquerda"><span class="material-icons">rotate_left</span></button>
+                    <button class="control-btn" onclick="rotateImage()" title="Girar Direita"><span class="material-icons">rotate_right</span></button>
+                    <button class="control-btn" onclick="baixarImagemComoPDF()" title="Baixar como PDF" id="btnBaixarComoPDF"><span class="material-icons">picture_as_pdf</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay-glosa" id="overlayGlosa"></div>
+    <div class="modal-glosa" id="modalGlosa">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h3 style="margin:0;color:var(--primary);font-family:'DM Sans',sans-serif;font-weight:700;">
+                <span class="material-icons" style="vertical-align:middle;margin-right:6px;color:var(--glosa);">flag</span>Marcar Glosa
+            </h3>
+            <button onclick="fecharModalGlosa()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;">×</button>
+        </div>
+        <div>
+            <p style="margin-bottom:12px;color:var(--text-muted);font-size:0.9rem;">Guia: <strong style="color:var(--primary);font-size:1.05rem;" id="guiaGlosaNumero"></strong></p>
+            <label style="display:block;margin-bottom:10px;font-weight:700;font-size:0.85rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Status:</label>
+            <div class="glosa-options">
+                <div class="glosa-option" onclick="selecionarOpcaoGlosa('Guia já Paga! Glosa')">
+                    <div style="font-weight:700;color:#0369a1;">Guia já Paga! Glosa</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);">Marcar como glosa (paga)</div>
+                </div>
+                <div class="glosa-option" onclick="selecionarOpcaoGlosa('OK')">
+                    <div style="font-weight:700;color:#065f46;">OK — Faturada</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);">Marcar como faturada normalmente</div>
+                </div>
+                <div class="glosa-option" onclick="selecionarOpcaoGlosa('')">
+                    <div style="font-weight:700;color:#dc2626;">Limpar marcação</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted);">Remover qualquer marcação</div>
+                </div>
+            </div>
+            <input type="text" id="inputObservacaoGlosa" placeholder="Observação adicional (opcional)" class="card-obs-input" style="margin:12px 0;">
+            <div style="display:flex;gap:10px;margin-top:4px;">
+                <button onclick="salvarGlosaAtual()" class="btn btn-glosa" style="flex:1;" id="btnSalvarGlosa">
+                    <span class="material-icons" style="font-size:18px;">save</span> Salvar
+                </button>
+                <button onclick="fecharModalGlosa()" class="btn btn-danger" style="flex:1;">
+                    <span class="material-icons" style="font-size:18px;">close</span> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CACHE GLOBAL - USANDO VAR EM VEZ DE LET PARA GARANTIR ESCOPO GLOBAL
+        // ============================================================
+        var CACHE_STATUS = {};
+        var CACHE_OBS = {};
+        var CACHE_GLOSA = {};
+        var CACHE_STATUS_DETALHADO = {};
+
+        window.CACHE_STATUS = CACHE_STATUS;
+        window.CACHE_OBS = CACHE_OBS;
+        window.CACHE_GLOSA = CACHE_GLOSA;
+        window.CACHE_STATUS_DETALHADO = CACHE_STATUS_DETALHADO;
+
+        var currentZoom = 1;
+        var currentRotation = 0;
+        // -------- Estado do "arrastar" (pan) da imagem/documento no visualizador --------
+        var panX = 0;
+        var panY = 0;
+        var isPanning = false;
+        var panStartX = 0;
+        var panStartY = 0;
+
+        var guiaGlobalAtual = "";
+        var guiaGlosaAtual = "";
+        var linhaGlosaAtual = null;
+        var opcaoGlosaSelecionada = "";
+        var modalPacienteAtual = "";
+        var modalTelefoneAtual = "";
+        var modalAnexoGuiaAtual = "";
+        var totalSemanasExtras = 0;
+        // -------- Controle do timeout do iframe no visualizador --------
+        var viewerIframeTimeoutId = null;
+
+        // ============================================================
+        // VALIDAÇÕES
+        // ============================================================
+        function validarGuia(valor) {
+            var v = String(valor || "").trim();
+            if (!v || v === "—" || v.length < 3) return { valido: false, erro: "Guia deve ter pelo menos 3 caracteres" };
+            if (/^\d+$/.test(v)) return { valido: false, erro: "Guia não pode ser apenas números" };
+            return { valido: true };
+        }
+
+        function validarNomePaciente(nome) {
+            var n = String(nome || "").trim();
+            if (!n || n === "") return { valido: false, erro: "Nome do paciente é obrigatório" };
+            if (n.length < 2) return { valido: false, erro: "Nome deve ter pelo menos 2 caracteres" };
+            return { valido: true };
+        }
+
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+        window.onload = function() {
+            carregarPsicologas();
+            initClock();
+            document.getElementById('overlayGlosa').addEventListener('click', fecharModalGlosa);
+            var now = new Date();
+            document.getElementById('selectMes').value = now.getMonth() + 1;
+            document.getElementById('selectAno').value = now.getFullYear();
+
+            // -------- Listeners de arrastar (pan) do visualizador --------
+            var dragLayer = document.getElementById('viewerDragLayer');
+            if (dragLayer) {
+                dragLayer.addEventListener('mousedown', iniciarArraste);
+                dragLayer.addEventListener('touchstart', iniciarArraste, { passive: false });
+            }
+            document.addEventListener('mousemove', moverArraste);
+            document.addEventListener('touchmove', moverArraste, { passive: false });
+            document.addEventListener('mouseup', pararArraste);
+            document.addEventListener('touchend', pararArraste);
+        };
+
+        function initClock() {
+            var dias = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+            function update() {
+                var n = new Date();
+                document.getElementById('clockDate').textContent = dias[n.getDay()] + '  ' + String(n.getDate()).padStart(2,'0') + '/' + String(n.getMonth()+1).padStart(2,'0') + '/' + n.getFullYear();
+                document.getElementById('clockTime').innerHTML = String(n.getHours()).padStart(2,'0') + '<span class="clock-blink">:</span>' + String(n.getMinutes()).padStart(2,'0') + '<span class="clock-blink">:</span>' + String(n.getSeconds()).padStart(2,'0');
+            }
+            update(); setInterval(update, 1000);
+        }
+
+        function formatarNomeInteligente(n) { if (!n) return ""; return n.split(" - ")[0].trim(); }
+
+        // ============================================================
+        // CARREGAR PSICÓLOGAS E PACIENTES
+        // ============================================================
+        function carregarPsicologas() {
+            var sel = document.getElementById('selectPsicologa');
+            google.script.run.withSuccessHandler(function(lista) {
+                sel.innerHTML = '<option value="">Selecione...</option>';
+                lista.forEach(function(nome) { var o = document.createElement('option'); o.value = nome; o.innerText = nome; sel.appendChild(o); });
+            }).getListaPsicologas();
+        }
+
+        function atualizarListaPacientes() {
+            var psi = document.getElementById('selectPsicologa').value;
+            var mes = document.getElementById('selectMes').value;
+            var ano = document.getElementById('selectAno').value;
+            var selPac = document.getElementById('selectPaciente');
+            if (!psi) { selPac.innerHTML = '<option value="todos">Selecione...</option>'; return; }
+            selPac.innerHTML = '<option>Carregando...</option>';
+            google.script.run.withSuccessHandler(function(lista) {
+                selPac.innerHTML = '<option value="todos">Todos</option>';
+                lista.forEach(function(nome) { var o = document.createElement('option'); o.value = nome; o.innerText = nome; if(nome.includes("- ALTA")){o.style.color="#dc2626";o.style.fontWeight="bold";} selPac.appendChild(o); });
+            }).getListaPacientes(psi, mes, ano);
+        }
+
+        // ============================================================
+        // BUSCAR DADOS
+        // ============================================================
+        function buscarDados() {
+            var psi = document.getElementById('selectPsicologa').value;
+            if (!psi) return mostrarMensagem("Selecione uma Psicóloga!", "warning");
+            var mes = document.getElementById('selectMes').value;
+            var ano = document.getElementById('selectAno').value;
+            var pac = document.getElementById('selectPaciente').value;
+            var btn = document.getElementById('btnBuscar');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Buscando...';
+            document.getElementById('cardDados').style.display = 'block';
+            document.getElementById('tabelaBody').innerHTML = '<tr><td colspan="7" style="padding:30px;color:var(--text-muted);"><span class="spinner"></span> Carregando...</td></tr>';
+            
+            google.script.run.withSuccessHandler(function(retorno) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons" style="font-size:20px;">search</span> Buscar';
+                if (retorno.erro) {
+                    document.getElementById('tabelaBody').innerHTML = '<tr><td colspan="7" style="color:var(--danger);padding:20px;">' + retorno.erro + '</td></tr>';
+                    mostrarMensagem("❌ " + retorno.erro, "error");
+                    return;
+                }
+                CACHE_STATUS = retorno.mapaStatus || {};
+                CACHE_OBS = retorno.mapaObservacao || {};
+                window.CACHE_STATUS = CACHE_STATUS;
+                window.CACHE_OBS = CACHE_OBS;
+                
+                var todasGuias = new Set();
+                retorno.pacientes.forEach(function(p) {
+                    [p.semana1, p.semana2, p.semana3, p.semana4, p.semana5].forEach(function(s) {
+                        if (s) {
+                            String(s).split(" / ").forEach(function(g) {
+                                var guiaLimpa = g.trim();
+                                if (guiaLimpa && guiaLimpa.length > 3) todasGuias.add(guiaLimpa);
+                            });
+                        }
+                    });
+                    if (p.extras) {
+                        p.extras.forEach(function(e) {
+                            if (e) {
+                                String(e).split(" / ").forEach(function(g) {
+                                    var guiaLimpa = g.trim();
+                                    if (guiaLimpa && guiaLimpa.length > 3) todasGuias.add(guiaLimpa);
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                if (todasGuias.size > 0) {
+                    google.script.run.withSuccessHandler(function(mapaStatusDetalhado) {
+                        CACHE_STATUS_DETALHADO = mapaStatusDetalhado || {};
+                        window.CACHE_STATUS_DETALHADO = CACHE_STATUS_DETALHADO;
+                        renderizarTabela(retorno.pacientes);
+                        carregarGlosasDasGuiasEspecificas(retorno.pacientes, psi);
+                        mostrarMensagem("✅ Busca concluída", "success");
+                    }).withFailureHandler(function() {
+                        CACHE_STATUS_DETALHADO = {};
+                        window.CACHE_STATUS_DETALHADO = CACHE_STATUS_DETALHADO;
+                        renderizarTabela(retorno.pacientes);
+                        carregarGlosasDasGuiasEspecificas(retorno.pacientes, psi);
+                        mostrarMensagem("✅ Busca concluída (sem status detalhado)", "success");
+                    }).buscarStatusDetalhadoGuias(psi, Array.from(todasGuias));
+                } else {
+                    CACHE_STATUS_DETALHADO = {};
+                    window.CACHE_STATUS_DETALHADO = CACHE_STATUS_DETALHADO;
+                    renderizarTabela(retorno.pacientes);
+                    carregarGlosasDasGuiasEspecificas(retorno.pacientes, psi);
+                    mostrarMensagem("✅ Busca concluída", "success");
+                }
+            }).withFailureHandler(function(erro) {
+                btn.disabled = false;
+                btn.innerHTML = '<span class="material-icons" style="font-size:20px;">search</span> Buscar';
+                document.getElementById('tabelaBody').innerHTML = '<tr><td colspan="7" style="color:var(--danger);padding:20px;">❌ Erro ao buscar: ' + erro + '</td></tr>';
+                mostrarMensagem("❌ Erro de comunicação: " + erro, "error");
+            }).buscarDadosBackend(psi, mes, ano, pac);
+        }
+
+        // ============================================================
+        // GLOSAS
+        // ============================================================
+        function carregarGlosasDasGuiasEspecificas(pacientes, psicologa) {
+            var guiasVistas = new Set(); var guiasDaTela = [];
+            pacientes.forEach(function(p) {
+                [p.semana1,p.semana2,p.semana3,p.semana4,p.semana5].concat(p.extras||[]).forEach(function(s) {
+                    if(s) String(s).split(" / ").forEach(function(g) { var t=g.trim(); if(t&&t.length>=5&&!guiasVistas.has(t)){guiasVistas.add(t);guiasDaTela.push(t);} });
+                });
+            });
+            if (guiasDaTela.length === 0) return;
+            google.script.run.withSuccessHandler(function(mapaGlosas) {
+                CACHE_GLOSA = mapaGlosas||{};
+                window.CACHE_GLOSA = CACHE_GLOSA;
+                atualizarVisualizacaoGlosasCorretamente();
+            }).withFailureHandler(function() {
+                atualizarVisualizacaoGlosasCorretamente();
+            }).buscarTodasGlosas(psicologa, guiasDaTela);
+        }
+
+        // ============================================================
+        // ADICIONAR SEMANA EXTRA
+        // ============================================================
+        function adicionarSemanaExtra() {
+            totalSemanasExtras++;
+            var label = "Extra " + totalSemanasExtras;
+            var headerRow = document.querySelector('#tabelaPrincipal thead tr');
+            var btnTh = document.getElementById('thBtnAddSemana');
+            var newTh = document.createElement('th');
+            newTh.className = 'col-semana'; newTh.style.background = '#7c3aed';
+            newTh.innerHTML = '<span style="font-size:0.75rem;">'+label+'</span>';
+            headerRow.insertBefore(newTh, btnTh);
+            document.querySelectorAll('#tabelaBody tr').forEach(function(tr) {
+                var td = document.createElement('td');
+                var cellDiv = document.createElement('div'); cellDiv.className = 'week-cell';
+                cellDiv.appendChild(criarGrupoInput('', tr)); cellDiv.appendChild(criarGrupoInput('', tr));
+                td.appendChild(cellDiv); tr.appendChild(td);
+            });
+        }
+
+        // ============================================================
+        // RENDERIZAR TABELA
+        // ============================================================
+        function renderizarTabela(pacientes) {
+            var tbody = document.getElementById('tabelaBody');
+            tbody.innerHTML = '';
+            var headerRow = document.querySelector('#tabelaPrincipal thead tr');
+            var btnTh = document.getElementById('thBtnAddSemana');
+            while(btnTh.previousElementSibling && btnTh.previousElementSibling.style.background === 'rgb(124, 58, 237)') headerRow.removeChild(btnTh.previousElementSibling);
+            totalSemanasExtras = 0;
+            if (!pacientes || pacientes.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="padding:30px;color:var(--text-muted);">Nenhum registro encontrado.</td></tr>'; return; }
+            var maxExtras = 0;
+            pacientes.forEach(function(p) { if(p.extras&&p.extras.length>maxExtras) maxExtras=p.extras.length; });
+            for (var e = 0; e < maxExtras; e++) {
+                totalSemanasExtras++;
+                var newTh = document.createElement('th'); newTh.className = 'col-semana'; newTh.style.background = '#7c3aed';
+                newTh.innerHTML = '<span style="font-size:0.75rem;">Extra '+(e+1)+'</span>';
+                headerRow.insertBefore(newTh, btnTh);
+            }
+            pacientes.sort(function(a,b) { var aA=a.nome.includes("ALTA"),bA=b.nome.includes("ALTA"); if(aA&&!bA)return 1; if(!aA&&bA)return -1; return a.nome.localeCompare(b.nome); });
+            pacientes.forEach(function(p) {
+                var tr = document.createElement('tr');
+                var temAlta = p.nome.includes("- ALTA");
+                if(temAlta) tr.classList.add('row-alta');
+                var nomeExib = formatarNomeInteligente(p.nome);
+                var sufixo = temAlta ? " (ALTA)" : "";
+                tr.innerHTML = '<td class="col-paciente"><div class="paciente-cell"><button class="btn-whatsapp" onclick="abrirWhatsApp(this,\''+escaparNomeParaJS(nomeExib)+'\')" title="WhatsApp"><span class="material-icons">chat</span></button><div class="paciente-info"><span class="texto-paciente">'+nomeExib+sufixo+'</span><span class="texto-plano">'+(p.plano||'')+'</span></div></div></td>';
+                [p.semana1,p.semana2,p.semana3,p.semana4,p.semana5].forEach(function(val) {
+                    var td=document.createElement('td'); var cellDiv=document.createElement('div'); cellDiv.className="week-cell";
+                    var vals=String(val).includes(" / ")?String(val).split(" / "):[val,""];
+                    cellDiv.appendChild(criarGrupoInput(vals[0]||"",tr)); cellDiv.appendChild(criarGrupoInput(vals[1]||"",tr));
+                    td.appendChild(cellDiv); tr.appendChild(td);
+                });
+                for(var ex=0;ex<maxExtras;ex++){
+                    var td=document.createElement('td'); var cellDiv=document.createElement('div'); cellDiv.className="week-cell";
+                    var extVal=(p.extras&&p.extras[ex])?p.extras[ex]:"";
+                    var vals=String(extVal).includes(" / ")?String(extVal).split(" / "):[extVal,""];
+                    cellDiv.appendChild(criarGrupoInput(vals[0]||"",tr)); cellDiv.appendChild(criarGrupoInput(vals[1]||"",tr));
+                    td.appendChild(cellDiv); tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            });
+            if(pacientes&&pacientes.length>0){
+                var totalAlta=pacientes.filter(function(p){return p.nome.includes("ALTA");}).length;
+                var totalGeral=pacientes.length; var totalAtivos=totalGeral-totalAlta;
+                var fr=document.createElement('tr'); fr.style.background='#f1f5f9'; fr.style.fontWeight='bold';
+                fr.innerHTML='<td colspan="'+(7+totalSemanasExtras)+'" style="padding:8px;border-top:2px solid #1e3a8a;text-align:right;"><span style="margin-right:20px;">ATIVOS: '+totalAtivos+'</span><span style="margin-right:20px;color:'+(totalAlta>0?'#dc2626':'#1e3a8a')+';">ALTAS: '+totalAlta+'</span><span>TOTAL GERAL: '+totalGeral+'</span></td>';
+                tbody.appendChild(fr);
+            }
+            setTimeout(function() { atualizarVisualizacaoGlosasCorretamente(); }, 100);
+        }
+
+        // ============================================================
+        // APLICAÇÃO ÚNICA DE STATUS VISUAL (cor/badge/flag)
+        // Esta é a ÚNICA função que decide como um input-guia é pintado.
+        // É chamada: ao criar a célula, ao digitar, e nas atualizações em
+        // massa depois de buscar status/glosas. Antes, a atualização em
+        // massa só tratava GLOSA e por isso FATURADO/FALTA/EXCLUÍDO/
+        // REGISTRADA nunca apareciam coloridos ao carregar a tela.
+        // ============================================================
+        function aplicarStatusVisual(input) {
+            var container = input.closest('.input-group');
+            if (!container) return;
+            var badge = container.querySelector('.status-badge');
+            var btnGlosa = container.querySelector('.btn-glosa-indicator');
+            var val = input.value.trim();
+
+            input.className = "input-guia";
+            if (badge) { badge.className = "status-badge"; badge.style.display = "none"; }
+            if (btnGlosa) { btnGlosa.style.display = "none"; btnGlosa.classList.remove("pendente"); }
+            input.title = "";
+            input.style.textDecoration = "none";
+            input.style.color = "";
+
+            if (!val) { input.style.borderColor = ""; return; }
+
+            var validGuia = validarGuia(val);
+            input.style.borderColor = validGuia.valido ? "" : "#fca5a5";
+            if (!validGuia.valido) input.title = validGuia.erro;
+
+            // Glosa marcada pelo usuário tem prioridade de exibição
+            var glosaInfo = CACHE_GLOSA[val];
+            var statusFinal = null;
+            var tituloFinal = "";
+
+            if (glosaInfo) {
+                statusFinal = glosaInfo.toUpperCase().indexOf("PENDENTE") !== -1 ? "GLOSA_PENDENTE" : "GLOSA";
+                tituloFinal = glosaInfo;
+            } else if (Object.prototype.hasOwnProperty.call(CACHE_STATUS, val)) {
+                statusFinal = CACHE_STATUS[val];
+                tituloFinal = CACHE_OBS[val] || "";
+            }
+
+            if (statusFinal) {
+                if (badge) badge.style.display = "block";
+                switch (statusFinal) {
+                    case "FATURADA":
+                        input.classList.add('input-faturada');
+                        if (badge) { badge.classList.add('badge-faturada'); badge.innerText = "FATURADO"; }
+                        if (btnGlosa) btnGlosa.style.display = "none";
+                        return;
+                    case "FALTA":
+                        input.classList.add('input-excluida');
+                        if (badge) { badge.classList.add('badge-excluida'); badge.innerText = "FALTA"; }
+                        input.style.textDecoration = "line-through";
+                        input.style.color = "#dc2626";
+                        input.title = "FALTA" + (tituloFinal ? " - " + tituloFinal : "");
+                        if (btnGlosa) btnGlosa.style.display = "flex";
+                        return;
+                    case "GLOSA":
+                        input.classList.add('input-glosa');
+                        if (badge) { badge.classList.add('badge-glosa'); badge.innerText = "GLOSA"; }
+                        input.title = tituloFinal;
+                        if (btnGlosa) btnGlosa.style.display = "flex";
+                        return;
+                    case "GLOSA_PENDENTE":
+                        input.classList.add('input-glosa-pendente');
+                        if (badge) { badge.classList.add('badge-glosa-pendente'); badge.innerText = "PENDENTE"; }
+                        input.title = tituloFinal;
+                        if (btnGlosa) { btnGlosa.style.display = "flex"; btnGlosa.classList.add("pendente"); }
+                        return;
+                    case "EXCLUIDO":
+                        input.classList.add('input-excluido');
+                        if (badge) { badge.classList.add('badge-excluido'); badge.innerText = "EXCLUÍDO"; }
+                        input.title = tituloFinal;
+                        if (btnGlosa) btnGlosa.style.display = "flex";
+                        return;
+                    default: // REGISTRADA
+                        var statusDet = window.CACHE_STATUS_DETALHADO && window.CACHE_STATUS_DETALHADO[val] ? window.CACHE_STATUS_DETALHADO[val] : null;
+                        if (statusDet && statusDet.temTipoAtendimento) {
+                            input.classList.add('input-registrada');
+                            if (badge) { badge.classList.add('badge-registrada'); badge.innerText = "Validar falta?"; }
+                            input.style.color = "#9a3412";
+                            input.title = "Validar falta? - " + (statusDet.tipoAtendimento || "");
+                        } else {
+                            input.classList.add('input-registrada');
+                            if (badge) { badge.classList.add('badge-registrada'); badge.innerText = "REGISTRADA"; }
+                        }
+                        if (btnGlosa) btnGlosa.style.display = "flex";
+                        return;
+                }
+            }
+
+            // Guia digitada na tela mas ainda não localizada nos Atendimentos
+            var statusDetSemCache = window.CACHE_STATUS_DETALHADO && window.CACHE_STATUS_DETALHADO[val] ? window.CACHE_STATUS_DETALHADO[val] : null;
+            if (statusDetSemCache && statusDetSemCache.temTipoAtendimento) {
+                input.classList.add('input-registrada');
+                if (badge) { badge.classList.add('badge-registrada'); badge.innerText = "Validar falta?"; badge.style.display = "block"; }
+                input.style.color = "#9a3412";
+                input.title = "Validar falta? - " + (statusDetSemCache.tipoAtendimento || "");
+            }
+            if (btnGlosa) btnGlosa.style.display = "flex";
+        }
+
+        // ============================================================
+        // CRIAR GRUPO INPUT
+        // ============================================================
+        function criarGrupoInput(valor, tr) {
+            var container = document.createElement('div');
+            container.className = "input-group";
+            var input = document.createElement('input');
+            input.className = "input-guia";
+            input.value = valor ? valor.trim() : "";
+            input.placeholder = "—";
+            input.autocomplete = "off";
+            var badge = document.createElement('span');
+            badge.className = "status-badge";
+            badge.style.display = "none";
+            var indicator = document.createElement('div');
+            indicator.className = "saving-indicator";
+            indicator.innerText = "Salvando...";
+            var btnGlosa = document.createElement('div');
+            btnGlosa.className = "btn-glosa-indicator";
+            btnGlosa.innerHTML = '<span class="material-icons" style="font-size:12px;">flag</span>';
+            btnGlosa.style.display = "none";
+            btnGlosa.onclick = function(e) {
+                e.stopPropagation();
+                var g = input.value.trim();
+                if (g) abrirModalGlosa(g);
+            };
+            container.appendChild(btnGlosa);
+            container.appendChild(input);
+            container.appendChild(badge);
+            container.appendChild(indicator);
+
+            var saveTimer;
+            input.addEventListener('input', function() {
+                aplicarStatusVisual(input);
+                clearTimeout(saveTimer);
+                indicator.innerText = "Digitando...";
+                indicator.className = "saving-indicator active";
+                saveTimer = setTimeout(function() {
+                    indicator.innerText = "Salvando...";
+                    indicator.className = "saving-indicator active";
+                    salvarLinha(tr, indicator);
+                }, 3000);
+            });
+            input.addEventListener('blur', function() {
+                clearTimeout(saveTimer);
+                if (input.value.trim()) {
+                    indicator.innerText = "Salvando...";
+                    indicator.className = "saving-indicator active";
+                    saveTimer = setTimeout(function() {
+                        salvarLinha(tr, indicator);
+                    }, 300);
+                }
+            });
+            input.addEventListener('keydown', function(e) {
+                if (e.key === "Enter") { input.blur(); }
+            });
+            input.addEventListener('dblclick', function() {
+                if (this.value.trim()) abrirModal(this.value.trim());
+            });
+            input.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                if (this.value.trim()) abrirModalGlosa(this.value.trim());
+            });
+
+            // Aplica o status visual imediatamente (caso já exista um valor pré-carregado do servidor)
+            aplicarStatusVisual(input);
+
+            return container;
+        }
+
+        // ============================================================
+        // ATUALIZAR VISUALIZAÇÃO DE STATUS (chamada em massa após buscas)
+        // ============================================================
+        function atualizarVisualizacaoGlosasCorretamente() {
+            document.querySelectorAll('.input-guia').forEach(function(input) {
+                if (input.value.trim()) aplicarStatusVisual(input);
+            });
+        }
+
+        function atualizarVisualizacaoGlosaUnica(guia) {
+            document.querySelectorAll('.input-guia').forEach(function(input) {
+                if (input.value.trim() === guia) aplicarStatusVisual(input);
+            });
+        }
+
+        // ============================================================
+        // SALVAR LINHA
+        // ============================================================
+        function salvarLinha(tr, indicator) {
+            try {
+                var psi = document.getElementById('selectPsicologa').value;
+                var mes = document.getElementById('selectMes').value;
+                var ano = document.getElementById('selectAno').value;
+                if (!psi || !mes || !ano) {
+                    indicator.innerText = "Erro: Faltam filtros";
+                    indicator.className = "saving-indicator active";
+                    indicator.style.color = "red";
+                    mostrarMensagem("⚠️ Selecione Psicóloga, Mês e Ano antes de salvar", "warning");
+                    setTimeout(function(){ indicator.style.color = ""; }, 3000);
+                    return;
+                }
+                var nomeCell = tr.cells[0].querySelector('.texto-paciente');
+                if (!nomeCell) {
+                    indicator.innerText = "Erro: Nome não encontrado";
+                    indicator.style.color = "red";
+                    mostrarMensagem("❌ Erro ao ler nome do paciente", "error");
+                    return;
+                }
+                var nomeCellValue = nomeCell.innerText.trim();
+                if (!nomeCellValue) {
+                    indicator.innerText = "Erro: Nome vazio";
+                    indicator.style.color = "red";
+                    return;
+                }
+                nomeCellValue = nomeCellValue.replace(" (ALTA)", "").trim();
+                var validacaoNome = validarNomePaciente(nomeCellValue);
+                if (!validacaoNome.valido) {
+                    indicator.innerText = "Erro: " + validacaoNome.erro;
+                    indicator.style.color = "red";
+                    mostrarMensagem("❌ " + validacaoNome.erro, "error");
+                    setTimeout(function(){ indicator.innerText = "Salvando..."; indicator.style.color = ""; }, 3000);
+                    return;
+                }
+
+                function getVals(idx) {
+                    if (idx >= tr.cells.length) return "";
+                    var inputs = tr.cells[idx].querySelectorAll('input');
+                    if (!inputs || inputs.length < 2) return "";
+                    var v1 = inputs[0].value.trim(), v2 = inputs[1].value.trim();
+                    if (v1 && v2) return v1 + " / " + v2;
+                    return v1 || v2 || "";
+                }
+                var s1 = getVals(1), s2 = getVals(2), s3 = getVals(3), s4 = getVals(4), s5 = getVals(5);
+                var extras = [];
+                for (var i = 6; i < tr.cells.length; i++) extras.push(getVals(i));
+                var temGuia = s1 || s2 || s3 || s4 || s5 || extras.some(function(e){return e;});
+                if (!temGuia) {
+                    indicator.innerText = "Sem guias";
+                    indicator.className = "saving-indicator";
+                    return;
+                }
+                var planoCell = tr.cells[0].querySelector('.texto-plano');
+                var plano = planoCell ? planoCell.innerText.trim() : "";
+                var dados = {
+                    psicologa: psi,
+                    mes: mes,
+                    ano: ano,
+                    paciente: {
+                        nome: nomeCellValue,
+                        plano: plano,
+                        semana1: s1,
+                        semana2: s2,
+                        semana3: s3,
+                        semana4: s4,
+                        semana5: s5,
+                        extras: extras
+                    }
+                };
+                indicator.innerText = "Salvando...";
+                indicator.className = "saving-indicator active";
+                google.script.run.withSuccessHandler(function(res) {
+                    if (res.sucesso) {
+                        indicator.innerText = "✓ Salvo";
+                        indicator.className = "saving-indicator saved";
+                        setTimeout(function() {
+                            indicator.className = "saving-indicator";
+                            indicator.innerText = "";
+                        }, 2000);
+                    } else {
+                        indicator.innerText = "❌ Erro";
+                        indicator.style.color = "red";
+                        mostrarMensagem("❌ " + res.erro, "error");
+                        setTimeout(function() {
+                            indicator.style.color = "";
+                            indicator.innerText = "";
+                        }, 4000);
+                    }
+                }).withFailureHandler(function(erro) {
+                    indicator.innerText = "❌ Erro";
+                    indicator.style.color = "red";
+                    mostrarMensagem("❌ Erro ao salvar: " + erro, "error");
+                    setTimeout(function() {
+                        indicator.style.color = "";
+                        indicator.innerText = "";
+                    }, 4000);
+                }).salvarDadosPaciente(dados);
+            } catch (e) {
+                console.error("Erro em salvarLinha:", e);
+                indicator.innerText = "❌ Erro";
+                indicator.style.color = "red";
+                mostrarMensagem("❌ Erro ao processar: " + e.message, "error");
+            }
+        }
+
+        // ============================================================
+        // GERAR PDF (relatório geral)
+        // ============================================================
+        function gerarPDF() {
+            var psi=document.getElementById('selectPsicologa').value;
+            if(!psi) return mostrarMensagem("Selecione uma psicóloga!","warning");
+            var btn=document.getElementById('btnPdf'); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Gerando...';
+            google.script.run.withSuccessHandler(function(res){
+                btn.disabled=false; btn.innerHTML='<span class="material-icons" style="font-size:20px;">picture_as_pdf</span> PDF';
+                if(res.sucesso){window.open().document.write('<iframe src="data:application/pdf;base64,'+res.base64+'" frameborder="0" style="width:100%;height:100%"></iframe>');}
+                else mostrarMensagem(res.erro,"error");
+            }).gerarRelatorioPDF(psi,document.getElementById('selectMes').value,document.getElementById('selectAno').value);
+        }
+
+        // ============================================================
+        // MODAL - ABRIR DETALHES DA GUIA
+        // ============================================================
+        function abrirModal(guia) {
+            if(!guia) return;
+            guiaGlobalAtual=guia; modalPacienteAtual=""; modalTelefoneAtual=""; modalAnexoGuiaAtual="";
+            var psi=document.getElementById('selectPsicologa').value;
+            document.getElementById('modalOverlay').style.display='block';
+            document.getElementById('modalContainer').style.display='flex';
+            document.getElementById('modalGuiaNum').innerText=guia;
+            document.getElementById('modalPacienteNome').innerText='';
+            document.getElementById('modalAgendaInfo').innerHTML='';
+            document.getElementById('modalSepAgenda').style.display='none';
+            document.getElementById('btnBaixarGuiaMedica').style.display='none';
+            document.getElementById('sessoesList').innerHTML='<div style="padding:30px;text-align:center;color:var(--text-muted);"><span class="spinner"></span><br>Carregando...</div>';
+            resetViewerDisplay();
+            google.script.run.withSuccessHandler(function(detalhes){
+                renderizarDetalhesModal(detalhes);
+                if(detalhes&&detalhes.length>0&&detalhes[0].paciente){
+                    modalPacienteAtual=detalhes[0].paciente;
+                    document.getElementById('modalPacienteNome').innerText=modalPacienteAtual;
+                    google.script.run.withSuccessHandler(function(ad){
+                        if(ad&&ad.sucesso){
+                            var infoHtml='';
+                            if(ad.diaSemana||ad.horario){infoHtml+='<span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:3px;">schedule</span>';if(ad.diaSemana)infoHtml+=ad.diaSemana;if(ad.diaSemana&&ad.horario)infoHtml+=', ';if(ad.horario)infoHtml+=ad.horario;document.getElementById('modalSepAgenda').style.display='inline';}
+                            document.getElementById('modalAgendaInfo').innerHTML=infoHtml;
+                            if(ad.telefone) modalTelefoneAtual=ad.telefone;
+                            if(ad.anexoGuia){modalAnexoGuiaAtual=ad.anexoGuia;document.getElementById('btnBaixarGuiaMedica').style.display='inline-flex';}
+                        }
+                    }).buscarDadosAgendaPaciente(psi,detalhes[0].paciente);
+                }
+            }).buscarDetalhesGuiaComGlosa(psi,guia);
+        }
+
+        function fecharModal(){document.getElementById('modalOverlay').style.display='none';document.getElementById('modalContainer').style.display='none';}
+
+        // ============================================================
+        // RENDERIZAR DETALHES MODAL
+        // ============================================================
+        function renderizarDetalhesModal(detalhes) {
+            var list = document.getElementById('sessoesList');
+            list.innerHTML = '';
+            if (!detalhes || !detalhes.length) {
+                list.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-muted);">Nenhum detalhe encontrado.</div>';
+                return;
+            }
+            detalhes.forEach(function(item, i) {
+                var div = document.createElement('div');
+                div.className = 'sessao-item';
+                div.id = 'card_modal_' + i;
+                if (item.observacao && item.observacao.toUpperCase().indexOf("GLOSA") !== -1) div.classList.add('status-glosa');
+                else if (item.observacao === "OK") div.classList.add('status-ok');
+                else if (item.observacao) div.classList.add('status-obs');
+                
+                div.innerHTML = '<div style="cursor:pointer" id="header_card_' + i + '"><b style="color:var(--primary);">Guia: ' + guiaGlobalAtual + '</b><br><small style="color:var(--text-muted);">' + item.data + '</small><br><span style="color:var(--success);font-weight:700;">R$ ' + item.valor + '</span></div><div class="card-controls"><input type="text" class="card-obs-input" id="input_card_' + i + '" value="' + (item.observacao || '') + '" placeholder="Ex: OK, Pendente..."><div class="card-btns"><button class="btn-card-action" style="background:var(--success)" onclick="salvarIndividualModal(' + item.linha + ',\'OK\',this,\'input_card_' + i + '\',\'card_modal_' + i + '\')">OK</button><button class="btn-card-action" style="background:var(--glosa)" onclick="salvarIndividualModal(' + item.linha + ',\'Guia já Paga! Glosa\',this,\'input_card_' + i + '\',\'card_modal_' + i + '\')">GLOSA</button></div></div>';
+                
+                div.querySelector('#header_card_' + i).onclick = function() {
+                    document.querySelectorAll('.sessao-item').forEach(function(d) {
+                        d.classList.remove('active');
+                    });
+                    div.classList.add('active');
+                    carregarNoViewer(item.link);
+                };
+                list.appendChild(div);
+                if (i === 0) div.querySelector('#header_card_' + i).click();
+            });
+        }
+
+        // ============================================================
+        // ATUALIZA CACHE + VISUAL DA TABELA A PARTIR DO RETORNO DO BACKEND
+        // (usa sempre res.statusClassificado / res.valorSalvo — a mesma
+        // classificação canônica usada no backend, nunca reinterpretados
+        // localmente no front)
+        // ============================================================
+        function atualizarCacheEVisual(guia, res) {
+            var statusCanonico = res.statusClassificado || "REGISTRADA";
+            if (statusCanonico === "GLOSA" || statusCanonico === "GLOSA_PENDENTE") {
+                CACHE_GLOSA[guia] = res.valorSalvo;
+            } else {
+                delete CACHE_GLOSA[guia];
+            }
+            CACHE_STATUS[guia] = statusCanonico;
+            CACHE_OBS[guia] = res.valorSalvo || "";
+            window.CACHE_GLOSA = CACHE_GLOSA;
+            window.CACHE_STATUS = CACHE_STATUS;
+            window.CACHE_OBS = CACHE_OBS;
+            atualizarVisualizacaoGlosaUnica(guia);
+            return statusCanonico;
+        }
+
+        function salvarIndividualModal(linha, valorFixo, btn, inputId, cardId){
+            var psi = document.getElementById('selectPsicologa').value;
+            var input = document.getElementById(inputId); 
+            var card = document.getElementById(cardId);
+            var obs = valorFixo || input.value; 
+            var orig = btn.innerText;
+            
+            var guia = document.getElementById('modalGuiaNum').innerText;
+            if (!guia) {
+                mostrarMensagem("❌ Guia não identificada", "error");
+                return;
+            }
+            
+            btn.innerText = "..."; 
+            btn.disabled = true;
+            
+            google.script.run
+                .withSuccessHandler(function(res){
+                    btn.disabled = false; 
+                    btn.innerText = "✓"; 
+                    setTimeout(function(){ btn.innerText = orig; }, 1500);
+                    if (res.sucesso) {
+                        if (valorFixo) input.value = res.valorSalvo;
+                        var statusCanonico = atualizarCacheEVisual(guia, res);
+
+                        card.classList.remove('status-ok','status-obs','status-glosa');
+                        if (statusCanonico === "FATURADA") card.classList.add('status-ok');
+                        else if (statusCanonico === "GLOSA" || statusCanonico === "GLOSA_PENDENTE") card.classList.add('status-glosa');
+                        else card.classList.add('status-obs');
+
+                        mostrarMensagem("✅ " + res.mensagem, "success");
+                    } else {
+                        mostrarMensagem("❌ " + res.erro, "error");
+                    }
+                })
+                .withFailureHandler(function(erro) {
+                    btn.disabled = false; 
+                    btn.innerText = orig;
+                    mostrarMensagem("❌ Erro: " + erro, "error");
+                })
+                .salvarStatusGuia(psi, guia, obs);
+        }
+
+        // ============================================================
+        // CARREGAR NO VIEWER
+        // ============================================================
+        // CORREÇÃO: antes, se a imagem/documento falhasse ou demorasse para
+        // carregar (por exemplo, um link do Drive bloqueado ou inválido), a
+        // tela simplesmente ficava preta e vazia, sem nenhuma mensagem —
+        // porque o placeholder já tinha sido escondido e nem <img> nem
+        // <iframe> tinham tratamento de erro. Agora sempre mostramos um
+        // estado de carregamento, e trocamos por uma mensagem clara (com
+        // link para abrir o original) se der erro ou demorar demais.
+        // ============================================================
+        function carregarNoViewer(link) {
+            var img = document.getElementById('viewerImage');
+            var iframe = document.getElementById('viewerIframe');
+            var div = document.getElementById('viewerPlaceholder');
+            var ctrls = document.getElementById('viewerControls');
+
+            // Cancela qualquer timeout pendente de uma chamada anterior
+            if (viewerIframeTimeoutId) {
+                clearTimeout(viewerIframeTimeoutId);
+                viewerIframeTimeoutId = null;
+            }
+            // Limpa handlers antigos para não empilhar callbacks de chamadas anteriores
+            img.onload = null;
+            img.onerror = null;
+            iframe.onload = null;
+
+            img.style.display = 'none';
+            iframe.style.display = 'none';
+            iframe.src = 'about:blank';
+            div.style.display = 'none';
+            ctrls.style.display = 'none';
+            resetViewer();
+
+            if (!link) {
+                div.style.display = 'block';
+                div.innerHTML = '<span class="material-icons" style="font-size:64px;">image</span><br><span style="font-size:0.9rem;">Sem imagem disponível</span>';
+                return;
+            }
+
+            var isImage = link.startsWith('data:image') || /\.(jpg|jpeg|png|gif|bmp|webp|svg)(\?.*)?$/i.test(link) || (link.includes('drive.google.com') && (link.includes('preview') || link.includes('uc?') || link.includes('thumbnail')));
+            var isPdf = link.includes('.pdf') || (link.includes('drive.google.com') && link.includes('pdf'));
+
+            if (isImage && !isPdf) {
+                // Estado de carregamento visível em vez de tela preta muda
+                div.style.display = 'block';
+                div.innerHTML = '<span class="spinner"></span><br><span style="font-size:0.9rem;color:rgba(255,255,255,0.6);">Carregando imagem...</span>';
+
+                img.onload = function() {
+                    div.style.display = 'none';
+                    img.style.display = 'block';
+                    ctrls.style.display = 'flex';
+                };
+                img.onerror = function() {
+                    div.style.display = 'block';
+                    div.innerHTML = '<span class="material-icons" style="font-size:64px;color:#f87171;">broken_image</span><br>' +
+                        '<span style="font-size:0.9rem;">Não foi possível carregar a imagem</span><br>' +
+                        '<a href="' + link + '" target="_blank" style="color:#60a5fa;font-size:0.85rem;">Abrir original em nova aba</a>';
+                    img.style.display = 'none';
+                };
+                img.src = link;
+            } else {
+                var finalLink = link;
+                if (link.includes('drive.google.com')) {
+                    if (link.includes('/view')) {
+                        finalLink = link.replace('/view', '/preview');
+                    } else if (link.includes('/edit')) {
+                        finalLink = link.replace('/edit', '/preview');
+                    } else if (!link.includes('/preview') && !link.includes('/uc?')) {
+                        var idMatch = link.match(/[a-zA-Z0-9-_]{25,}/);
+                        if (idMatch) {
+                            finalLink = 'https://drive.google.com/file/d/' + idMatch[0] + '/preview';
+                        }
+                    }
+                }
+
+                div.style.display = 'block';
+                div.innerHTML = '<span class="spinner"></span><br><span style="font-size:0.9rem;color:rgba(255,255,255,0.6);">Carregando documento...</span>';
+
+                iframe.onload = function() {
+                    clearTimeout(viewerIframeTimeoutId);
+                    viewerIframeTimeoutId = null;
+                    div.style.display = 'none';
+                    iframe.style.display = 'block';
+                    ctrls.style.display = 'flex';
+                };
+
+                // Se o iframe não avisar "carregado" em 10s (bloqueio por
+                // X-Frame-Options, exigência de login do Drive, arquivo
+                // inacessível, etc.), avisamos o usuário em vez de deixar a
+                // tela preta indefinidamente.
+                viewerIframeTimeoutId = setTimeout(function() {
+                    if (div.style.display === 'block') {
+                        div.innerHTML = '<span class="material-icons" style="font-size:64px;color:#f59e0b;">warning</span><br>' +
+                            '<span style="font-size:0.9rem;">O documento está demorando para carregar</span><br>' +
+                            '<a href="' + link + '" target="_blank" style="color:#60a5fa;font-size:0.85rem;">Abrir original em nova aba</a>';
+                    }
+                }, 10000);
+
+                iframe.src = finalLink;
+            }
+        }
+
+        // ============================================================
+        // CONTROLES DO VIEWER (zoom, rotação e arrastar/pan)
+        // ============================================================
+        function resetViewerDisplay(){
+            document.getElementById('viewerImage').src="";
+            document.getElementById('viewerIframe').src="about:blank";
+            document.getElementById('viewerPlaceholder').style.display='block';
+            document.getElementById('viewerControls').style.display='none';
+            currentZoom=1; currentRotation=0; panX=0; panY=0;
+            if (viewerIframeTimeoutId) { clearTimeout(viewerIframeTimeoutId); viewerIframeTimeoutId = null; }
+            var dl=document.getElementById('viewerDragLayer');
+            if(dl){ dl.style.display='none'; dl.classList.remove('dragging'); }
+        }
+        function applyTransform(){
+            var t='translate('+panX+'px, '+panY+'px) scale('+currentZoom+') rotate('+currentRotation+'deg)';
+            var img=document.getElementById('viewerImage');
+            var iframe=document.getElementById('viewerIframe');
+            if(img&&img.style.display!=='none')img.style.transform=t;
+            if(iframe&&iframe.style.display!=='none'){iframe.style.transform=t;iframe.style.transformOrigin='center center';}
+            // A camada de arrastar só fica ativa quando há zoom aplicado, para não
+            // atrapalhar a navegação nativa do documento/PDF quando não é necessário.
+            var dragLayer=document.getElementById('viewerDragLayer');
+            if(dragLayer) dragLayer.style.display = (currentZoom>1) ? 'block' : 'none';
+        }
+        function zoomIn(){currentZoom+=0.2;applyTransform();}
+        function zoomOut(){if(currentZoom>0.4)currentZoom-=0.2;if(currentZoom<=1){panX=0;panY=0;}applyTransform();}
+        function rotateImage(){currentRotation+=90;applyTransform();}
+        function rotateLeft(){currentRotation-=90;applyTransform();}
+        function resetViewer(){currentZoom=1;currentRotation=0;panX=0;panY=0;applyTransform();}
+
+        // -------- Arrastar (pan) para ver os cantos da imagem/documento com zoom --------
+        function iniciarArraste(e) {
+            if (currentZoom <= 1) return;
+            isPanning = true;
+            var ponto = e.touches ? e.touches[0] : e;
+            panStartX = ponto.clientX - panX;
+            panStartY = ponto.clientY - panY;
+            var dl = document.getElementById('viewerDragLayer');
+            if (dl) dl.classList.add('dragging');
+            e.preventDefault();
+        }
+        function moverArraste(e) {
+            if (!isPanning) return;
+            var ponto = e.touches ? e.touches[0] : e;
+            panX = ponto.clientX - panStartX;
+            panY = ponto.clientY - panStartY;
+            applyTransform();
+            e.preventDefault();
+        }
+        function pararArraste() {
+            if (!isPanning) return;
+            isPanning = false;
+            var dl = document.getElementById('viewerDragLayer');
+            if (dl) dl.classList.remove('dragging');
+        }
+
+        // ============================================================
+        // BAIXAR IMAGEM/DOCUMENTO ABERTO NO VISUALIZADOR COMO PDF
+        // ============================================================
+        function baixarImagemComoPDF() {
+            var img = document.getElementById('viewerImage');
+            var iframe = document.getElementById('viewerIframe');
+            if (img && img.style.display !== 'none' && img.src) {
+                gerarPdfDeImagem(img.src);
+                return;
+            }
+            if (iframe && iframe.style.display !== 'none' && iframe.src) {
+                // Para arquivos que já são PDF/documento no Drive (mostrados no iframe),
+                // não é possível "printar" o conteúdo por causa do sandbox do iframe;
+                // abrimos o arquivo original para o usuário baixar diretamente do Drive.
+                var linkOriginal = iframe.src.replace('/preview', '/view');
+                window.open(linkOriginal, '_blank');
+                mostrarMensagem("Abrindo o documento original para download...", "info");
+                return;
+            }
+            mostrarMensagem("Nenhum documento disponível para baixar.", "warning");
+        }
+
+        function gerarPdfDeImagem(src) {
+            if (typeof jspdf === 'undefined') {
+                mostrarMensagem("❌ Biblioteca de PDF não carregou. Verifique sua conexão.", "error");
+                return;
+            }
+            mostrarMensagem("Gerando PDF...", "info");
+            var tempImg = new Image();
+            tempImg.crossOrigin = "anonymous";
+            tempImg.onload = function() {
+                try {
+                    var canvas = document.createElement('canvas');
+                    canvas.width = tempImg.naturalWidth;
+                    canvas.height = tempImg.naturalHeight;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(tempImg, 0, 0);
+                    var imgData = canvas.toDataURL('image/jpeg', 0.92);
+                    var orientacao = canvas.width > canvas.height ? 'l' : 'p';
+                    var pdf = new jspdf.jsPDF({ orientation: orientacao, unit: 'px', format: [canvas.width, canvas.height] });
+                    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                    var nomeArquivo = 'Guia_' + (guiaGlobalAtual || 'documento') + '.pdf';
+                    pdf.save(nomeArquivo);
+                    mostrarMensagem("✅ PDF gerado com sucesso!", "success");
+                } catch (e) {
+                    mostrarMensagem("❌ Erro ao gerar PDF: " + e.message, "error");
+                }
+            };
+            tempImg.onerror = function() {
+                mostrarMensagem("❌ Não foi possível carregar a imagem para conversão em PDF.", "error");
+            };
+            tempImg.src = src;
+        }
+
+        // ============================================================
+        // WHATSAPP
+        // ============================================================
+        function whatsappDoModal(){
+            if(modalTelefoneAtual){var t=modalTelefoneAtual.replace(/\D/g,'');if(!t.startsWith('55'))t='55'+t;window.open('https://wa.me/'+t,'_blank');}
+            else if(modalPacienteAtual){
+                var psi=document.getElementById('selectPsicologa').value;
+                var btn=document.getElementById('modalBtnWhatsapp'); btn.classList.add('loading'); btn.innerHTML='<span class="material-icons">sync</span>';
+                google.script.run.withSuccessHandler(function(res){btn.classList.remove('loading');btn.innerHTML='<span class="material-icons">chat</span>';if(res.sucesso&&res.telefone){modalTelefoneAtual=res.telefone;var t=res.telefone.replace(/\D/g,'');if(!t.startsWith('55'))t='55'+t;window.open('https://wa.me/'+t,'_blank');}else mostrarMensagem('📱 Telefone não encontrado para: '+modalPacienteAtual,'warning');}).buscarTelefonePaciente(psi,modalPacienteAtual);
+            } else mostrarMensagem('Paciente não identificado nesta guia.','warning');
+        }
+
+        function baixarGuiaMedica(){if(modalAnexoGuiaAtual)window.open(modalAnexoGuiaAtual,'_blank');else mostrarMensagem('Anexo não encontrado.','warning');}
+
+        // ============================================================
+        // GLOSA MODAL
+        // ============================================================
+        function abrirModalGlosa(guia,linha){
+            if(!guia||guia.trim()===""){mostrarMensagem("Guia inválida!","warning");return;}
+            guiaGlosaAtual=guia.trim(); linhaGlosaAtual=linha||null;
+            document.getElementById('guiaGlosaNumero').textContent=guiaGlosaAtual;
+            document.getElementById('overlayGlosa').style.display='block';
+            document.getElementById('modalGlosa').style.display='block';
+            document.querySelectorAll('.glosa-option').forEach(function(o){o.classList.remove('selected');});
+            opcaoGlosaSelecionada=""; document.getElementById('inputObservacaoGlosa').value="";
+            var psi=document.getElementById('selectPsicologa').value;
+            google.script.run.withSuccessHandler(function(s){
+                if (!s) return;
+                var sUpper = s.toUpperCase();
+                if (sUpper.indexOf("GLOSA") !== -1) {
+                    selecionarOpcaoGlosa('Guia já Paga! Glosa');
+                    if (s.indexOf(" - ") !== -1) {
+                        var partes = s.split(" - ");
+                        if (partes.length > 1) {
+                            document.getElementById('inputObservacaoGlosa').value = partes.slice(1).join(" - ");
+                        }
+                    }
+                } else if (sUpper === "OK") {
+                    selecionarOpcaoGlosa('OK');
+                }
+            }).buscarGlosa(psi,guiaGlosaAtual);
+        }
+
+        function fecharModalGlosa(){document.getElementById('overlayGlosa').style.display='none';document.getElementById('modalGlosa').style.display='none';guiaGlosaAtual="";linhaGlosaAtual=null;opcaoGlosaSelecionada="";}
+
+        function selecionarOpcaoGlosa(opcao){
+            opcaoGlosaSelecionada=opcao;
+            document.querySelectorAll('.glosa-option').forEach(function(o){o.classList.remove('selected');if(o.textContent.includes(opcao)||(opcao===""&&o.textContent.includes("Limpar")))o.classList.add('selected');});
+        }
+
+        function salvarGlosaAtual(){
+            if (!opcaoGlosaSelecionada && opcaoGlosaSelecionada !== "") {
+                mostrarMensagem("Selecione uma opção!", "warning");
+                return;
+            }
+            var psi = document.getElementById('selectPsicologa').value;
+            if (!psi) {
+                mostrarMensagem("Selecione uma psicóloga!", "warning");
+                return;
+            }
+            
+            var guia = document.getElementById('guiaGlosaNumero').textContent;
+            if (!guia) {
+                mostrarMensagem("❌ Guia não identificada", "error");
+                return;
+            }
+            
+            var obsAd = document.getElementById('inputObservacaoGlosa').value.trim();
+            var btn = document.getElementById('btnSalvarGlosa'); 
+            var orig = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;"></span> Salvando...'; 
+            btn.disabled = true;
+            
+            google.script.run
+                .withSuccessHandler(function(res){
+                    btn.innerHTML = orig; 
+                    btn.disabled = false;
+                    if (res.sucesso) {
+                        // Antes desta correção, este bloco usava "if (res.tipo === 'DIRETO')" —
+                        // um campo que o backend nunca retorna. Isso fazia com que o cache local
+                        // NUNCA fosse atualizado após salvar, e a célula só ficava colorida
+                        // depois de clicar em "Buscar" novamente.
+                        atualizarCacheEVisual(guia, res);
+                        mostrarMensagem("✅ " + res.mensagem, "success");
+                        fecharModalGlosa();
+                    } else {
+                        mostrarMensagem("❌ " + res.erro, "error");
+                    }
+                })
+                .withFailureHandler(function(e){
+                    btn.innerHTML = orig; 
+                    btn.disabled = false;
+                    mostrarMensagem("❌ Erro: " + e, "error");
+                })
+                .salvarStatusGuia(psi, guia, opcaoGlosaSelecionada, obsAd);
+        }
+
+        function verificarGlosasPendentes(){
+            var psi=document.getElementById('selectPsicologa').value;
+            if(!psi){mostrarMensagem("Selecione uma psicóloga!","warning");return;}
+            var btn=document.getElementById('btnVerificarGlosas'); var orig=btn.innerHTML;
+            btn.innerHTML='<span class="spinner" style="width:16px;height:16px;"></span>'; btn.disabled=true;
+            google.script.run.withSuccessHandler(function(res){
+                btn.innerHTML=orig; btn.disabled=false;
+                if(res.sucesso){mostrarMensagem("✅ "+res.mensagem,"success");if(res.mensagem.includes("aplicada"))setTimeout(function(){if(document.getElementById('cardDados').style.display!=='none')buscarDados();},1000);}
+                else mostrarMensagem("ℹ️ "+res.erro,"info");
+            }).withFailureHandler(function(e){btn.innerHTML=orig;btn.disabled=false;mostrarMensagem("❌ Erro: "+e,"error");}).verificarEAplicarGlosasPendentes(psi);
+        }
+
+        // ============================================================
+        // MENSAGENS
+        // ============================================================
+        function mostrarMensagem(texto,tipo){
+            var container=document.getElementById('messageContainer');
+            var msg=document.createElement('div'); msg.className='message '+tipo;
+            var icons={error:'error',success:'check_circle',warning:'warning',info:'info'};
+            msg.innerHTML='<span class="material-icons" style="font-size:18px;">'+(icons[tipo]||'info')+'</span> '+texto;
+            container.appendChild(msg);
+            setTimeout(function(){msg.style.opacity='0';msg.style.transform='translateX(40px)';msg.style.transition='all 0.3s ease';setTimeout(function(){if(msg.parentNode)msg.parentNode.removeChild(msg);},300);},5000);
+        }
+
+        function escaparNomeParaJS(nome){return nome.replace(/'/g,"\\'").replace(/"/g,'\\"');}
+
+        function abrirWhatsApp(btn,nomePaciente){
+            if(!nomePaciente||nomePaciente.trim()===""){mostrarMensagem("Nome inválido!","warning");return;}
+            var psi=document.getElementById('selectPsicologa').value;
+            if(!psi){mostrarMensagem("Selecione uma psicóloga!","warning");return;}
+            btn.classList.add('loading'); var orig=btn.innerHTML; btn.innerHTML='<span class="material-icons">sync</span>';
+            google.script.run.withSuccessHandler(function(r){
+                btn.classList.remove('loading'); btn.innerHTML=orig;
+                if(r.sucesso&&r.telefone){var t=r.telefone.replace(/\D/g,'');if(!t.startsWith('55'))t='55'+t;window.open('https://wa.me/'+t,'_blank');}
+                else mostrarMensagem("📱 Telefone não encontrado para: "+nomePaciente,"warning");
+            }).withFailureHandler(function(e){btn.classList.remove('loading');btn.innerHTML=orig;mostrarMensagem("❌ Erro: "+e,"error");}).buscarTelefonePaciente(psi,nomePaciente);
+        }
+
+        var deferredPrompt;
+        window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('installBanner').style.display='flex';});
+        function installApp(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;dismissInstall();});}}
+        function dismissInstall(){document.getElementById('installBanner').style.display='none';}
+    </script>
+</body>
+</html>

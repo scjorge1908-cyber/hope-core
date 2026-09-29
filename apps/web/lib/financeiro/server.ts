@@ -47,3 +47,19 @@ export async function requireFinanceAccess() {
   const { data: me } = await supabase.from('users').select('tenant_id').eq('id', user.id).single()
   return { supabase, user, tenantId: me?.tenant_id ?? null, allowed: true as const }
 }
+
+/**
+ * Mesma checagem de requireFinanceAccess, mas SEM redirecionar — para
+ * Route Handlers (API) que precisam responder JSON 401/403.
+ */
+export async function getFinanceAccess() {
+  const supabase = await createFinanceClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { supabase, user: null, allowed: false as const, status: 401 as const }
+
+  const { data: allowed, error } = await supabase.rpc('has_finance_access')
+  if (error || !allowed) return { supabase, user, allowed: false as const, status: 403 as const }
+  return { supabase, user, allowed: true as const, status: 200 as const }
+}
