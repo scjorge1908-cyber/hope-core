@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
-import { alertas, indicadores, rotuloMes, type Painel } from '@/lib/painel/painel'
+import { alertas, indicadores, rotuloEixo, rotuloMes, type Painel } from '@/lib/painel/painel'
 import { Barras, Colunas, ColunasDuplas, MiniBarra } from './graficos'
 import d from './dashboard.module.css'
 
@@ -218,7 +218,7 @@ export default async function DashboardPage() {
             <p className={d.nota}>Todas as psicólogas, pela data da sessão. {mesNome} ainda em andamento.</p>
             <Colunas
               itens={p.mensal.map((m) => ({
-                rotulo: rotuloMes(m.mes),
+                rotulo: rotuloEixo(m.mes),
                 valor: m.realizadas,
                 texto: int(m.realizadas),
                 parcial: m.mes === k.mesAtualIso,
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
             <p className={d.nota}>Pacientes diferentes com sessão no mês e quantos tiveram a 1ª sessão naquele mês.</p>
             <ColunasDuplas
               nomes={['Pacientes atendidos', 'Novos']}
-              itens={p.mensal.map((m) => ({ rotulo: rotuloMes(m.mes), a: m.pacientes, b: m.novos, textoA: int(m.pacientes), textoB: int(m.novos) }))}
+              itens={p.mensal.map((m) => ({ rotulo: rotuloEixo(m.mes), a: m.pacientes, b: m.novos, textoA: int(m.pacientes), textoB: int(m.novos) }))}
             />
             <div className={d.insight}>
               Base histórica: <b>{int(p.retencao.total_historico)}</b> pacientes já atendidos. Nos últimos 30 dias:{' '}
@@ -267,7 +267,7 @@ export default async function DashboardPage() {
             <ColunasDuplas
               nomes={['Informado', 'Liberado']}
               itens={unimedFechados.map((u) => ({
-                rotulo: rotuloMes(u.month),
+                rotulo: rotuloEixo(u.month),
                 a: Number(u.informed),
                 b: Number(u.released),
                 textoA: brl0(u.informed),

@@ -64,6 +64,8 @@ const pct = (v: number) => `${(v * 100).toLocaleString('pt-BR', { maximumFractio
 
 export const MESES_CURTOS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
 export const rotuloMes = (iso: string) => `${MESES_CURTOS[Number(iso.slice(5, 7)) - 1]}/${iso.slice(2, 4)}`
+/** Rótulo curto para eixo de gráfico: 'ago'; janeiro leva o ano ('jan/26'). */
+export const rotuloEixo = (iso: string) => (iso.slice(5, 7) === '01' ? `jan/${iso.slice(2, 4)}` : MESES_CURTOS[Number(iso.slice(5, 7)) - 1])
 
 /** Dias do mês e dias já passados (inclusive hoje), para projetar o fechamento. */
 export function ritmoDoMes(hojeIso: string) {

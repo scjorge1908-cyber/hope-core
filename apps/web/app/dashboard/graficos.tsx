@@ -8,6 +8,7 @@ export type ItemColuna = { rotulo: string; valor: number; texto: string; parcial
 export function Colunas({ itens, cor = 'serie1', legendaParcial }: { itens: ItemColuna[]; cor?: 'serie1' | 'serie2'; legendaParcial?: string }) {
   const max = Math.max(1, ...itens.map((i) => i.valor))
   return (
+    <>
     <div className={g.colunas} role="img" aria-label={itens.map((i) => `${i.rotulo}: ${i.texto}`).join('; ')}>
       {itens.map((i, idx) => (
         <div key={i.rotulo + idx} className={g.coluna} title={i.dica ?? `${i.rotulo}: ${i.texto}`}>
@@ -18,8 +19,9 @@ export function Colunas({ itens, cor = 'serie1', legendaParcial }: { itens: Item
           <span className={g.rotulo}>{i.rotulo}</span>
         </div>
       ))}
-      {legendaParcial && itens.some((i) => i.parcial) && <div className={g.notaParcial}>▨ {legendaParcial}</div>}
     </div>
+    {legendaParcial && itens.some((i) => i.parcial) && <div className={g.notaParcial}>▨ {legendaParcial}</div>}
+    </>
   )
 }
 

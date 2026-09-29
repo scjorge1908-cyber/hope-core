@@ -72,11 +72,9 @@
 }
 
 .notaParcial {
-  position: absolute;
-  right: 0;
-  top: -2px;
   font-size: 11px;
   color: var(--dash-muted);
+  margin-top: 6px;
 }
 
 .legenda {
