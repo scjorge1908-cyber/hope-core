@@ -26,6 +26,12 @@ export default async function DashboardPage() {
         Logado como: <strong>{user.email}</strong>
       </p>
 
+      <p style={{ marginBottom: 32 }}>
+        <a href="/financeiro" style={{ color: '#1d4ed8', fontWeight: 600 }}>
+          → Financeiro (demonstrativos, glosas e notas fiscais)
+        </a>
+      </p>
+
       <section>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>
           Tenants visíveis (via RLS)
