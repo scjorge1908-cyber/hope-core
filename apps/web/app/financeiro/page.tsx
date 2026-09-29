@@ -48,6 +48,15 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
   const planosComXml = new Set((comDemonstrativo ?? []).map((x) => x.insurance_plan_id))
   const plan = plans.find((p) => p.id === plano) ?? plans.find((p) => planosComXml.has(p.id)) ?? plans[0]
 
+  // recebimento de cada demonstrativo (previsto do XML na Agenda: confirmado pelo banco ou à mão)
+  await supabase.rpc('previstos_demonstrativos_sync')
+  const { data: recebXml } = await supabase
+    .from('cashflow_items')
+    .select('external_ref, status, realized_date, realized_amount, realized_source, expected_date')
+    .eq('source', 'unimed_xml')
+    .eq('insurance_plan_id', plan.id)
+  const receb = new Map((recebXml ?? []).map((r) => [String(r.external_ref), r]))
+
   const [statementsRes, monthlyRes, codesRes, glossRes, dupRes] = await Promise.all([
     supabase.from('claim_statement_overview').select('*').eq('insurance_plan_id', plan.id).order('emission_date', { ascending: false }),
     supabase.from('claim_monthly_summary').select('*').eq('insurance_plan_id', plan.id).order('month', { ascending: false }),
@@ -74,6 +83,15 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
     .filter((x) => x.financial_status === 'nota_emitida')
     .reduce((t, x) => t + Number(x.invoiced) - Number(x.paid), 0)
   const paid = statements.reduce((t, x) => t + Number(x.paid), 0)
+  // recebido = NF paga OU previsto do XML confirmado (banco/manual) — sem somar duas vezes
+  const recebido = (x: (typeof statements)[number]) => {
+    const r = receb.get(x.statement_number)
+    const viaXml = r?.status === 'realizado' ? Number(r.realized_amount ?? 0) : 0
+    return Math.max(Number(x.paid), viaXml)
+  }
+  const recebidoTotal = statements.reduce((t, x) => t + recebido(x), 0)
+  const aReceber = statements.filter((x) => recebido(x) === 0).reduce((t, x) => t + Number(x.items_released), 0)
+  const qtdAReceber = statements.filter((x) => recebido(x) === 0).length
 
   // ---------- glosa por paciente ----------
   const byPatient = new Map<string, { name: string; last4: string; n: number; value: number; codes: Set<string> }>()
@@ -132,10 +150,13 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
             {semNota.length} demonstrativo{semNota.length === 1 ? '' : 's'} sem nota registrada
           </div>
         </div>
-        <div className={s.cardInfo}>
-          <div className={s.cardLabel}>Nota emitida, a receber</div>
-          <div className={s.cardValue}>{brl(invoicedOpen)}</div>
-          <div className={s.cardHint}>Recebido até agora: {brl(paid)}</div>
+        <div className={s.cardInfo} title={`Pago por NF registrada: ${brl(paid)}`}>
+          <div className={s.cardLabel}>A receber (XML)</div>
+          <div className={s.cardValue}>{brl(aReceber)}</div>
+          <div className={s.cardHint}>
+            {qtdAReceber} demonstrativo{qtdAReceber === 1 ? '' : 's'} · recebido até agora: {brl(recebidoTotal)}
+            {invoicedOpen > 0 ? ` · NF emitida a receber: ${brl(invoicedOpen)}` : ''}
+          </div>
         </div>
       </div>
 
@@ -185,7 +206,32 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                     <td className={Number(x.items_gloss) > 0 ? s.numBad : s.num}>{brl(x.items_gloss)}</td>
                     <td>{x.invoice_numbers ?? '—'}</td>
                     <td>
-                      <span className={st.cls}>{st.label}</span>
+                      {(() => {
+                        const r = receb.get(x.statement_number)
+                        if (r?.status === 'realizado') {
+                          return (
+                            <>
+                              <span className={s.badgeGood}>Paga</span>{' '}
+                              <span
+                                className={r.realized_source === 'banco' ? s.badgeInfo : s.badgeGood}
+                                title={`Recebido em ${dataBR(r.realized_date)} · ${brl(Number(r.realized_amount ?? 0))}`}
+                              >
+                                {r.realized_source === 'banco' ? 'Conciliado Cora' : 'Confirmado'} {dataBR(r.realized_date).slice(0, 5)}
+                              </span>
+                            </>
+                          )
+                        }
+                        return (
+                          <>
+                            <span className={st.cls}>{st.label}</span>
+                            {r?.expected_date && (
+                              <span className={s.muted} style={{ fontSize: 12, marginLeft: 6 }}>
+                                prev. {dataBR(r.expected_date).slice(0, 5)}
+                              </span>
+                            )}
+                          </>
+                        )
+                      })()}
                     </td>
                     <td>
                       {div.length ? (

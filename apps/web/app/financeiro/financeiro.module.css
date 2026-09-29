@@ -421,6 +421,12 @@
   color: var(--fin-warn);
 }
 
+.badgeInfo {
+  composes: badge;
+  background: var(--fin-accent-soft);
+  color: var(--fin-accent);
+}
+
 .badgeBad {
   composes: badge;
   background: var(--fin-bad-soft);
