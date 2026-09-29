@@ -283,7 +283,9 @@ export type FinanceDatabase = {
       // migration 013 — conferência de guias (3 pontas)
       conferencia_guias: { Args: { p_ano: number; p_mes: number }; Returns: import('./conferencia').LinhaConferencia[] }
       // migration 014
-      legacy_planilhas_nomes: { Args: never; Returns: { spreadsheet_id: string; nome_abreviado: string | null; nome_completo: string | null; ativo: boolean }[] }
+      legacy_planilhas_nomes: { Args: never; Returns: { spreadsheet_id: string; nome_abreviado: string | null; nome_completo: string | null; ativo: boolean; desligada: boolean; desligada_em: string | null }[] }
+      // migration 015
+      legacy_marcar_desligada: { Args: { p_spreadsheet_id: string; p_desligada: boolean }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

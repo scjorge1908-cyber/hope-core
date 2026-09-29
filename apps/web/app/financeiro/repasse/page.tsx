@@ -3,6 +3,7 @@ import { dataBR } from '@/lib/financeiro/format'
 import { MESES, processarRelatorio, type BaseRpaLegado, type LinhaRelatorio, type TipoRelatorio } from '@/lib/financeiro/rpa-legado'
 import { BotaoImprimir } from './botao-imprimir'
 import { BotaoSincronizar } from '../sincronizar/botao-sincronizar'
+import { marcarDesligada } from './actions'
 import s from '../financeiro.module.css'
 import r from './relatorio.module.css'
 
@@ -29,6 +30,8 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
   const gerar = sp.gerar === '1'
 
   const { data: status } = await supabase.rpc('legacy_sync_status')
+  const { data: nomesPlanilhas } = await supabase.rpc('legacy_planilhas_nomes')
+  const desligadas = new Map((nomesPlanilhas ?? []).filter((p) => p.desligada).map((p) => [p.spreadsheet_id, p.desligada_em]))
 
   let resultado: ReturnType<typeof processarRelatorio> | null = null
   let erro: string | null = null
@@ -222,7 +225,10 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
 
       <section className={`${s.section} ${r.naoImprimir}`} style={{ marginTop: 24 }}>
         <h2 className={s.sectionTitle}>Sincronização das planilhas</h2>
-        <p className={s.sectionNote}>Psicólogas da aba ID do Calculo RPA, na mesma ordem.</p>
+        <p className={s.sectionNote}>
+          Psicólogas da aba ID do Calculo RPA, na mesma ordem. “Desligar” tira a psicóloga do filtro do Registro de Guias; a
+          planilha e o histórico de repasse continuam.
+        </p>
         <BotaoSincronizar />
         {!status?.length ? (
           <p className={s.muted} style={{ fontSize: 14, marginBottom: 10 }}>
@@ -237,6 +243,7 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
                   <th className={s.num}>Linhas</th>
                   <th>Última leitura</th>
                   <th>Situação</th>
+                  <th>Na clínica</th>
                 </tr>
               </thead>
               <tbody>
@@ -259,6 +266,30 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
                       ) : (
                         <span className={s.badgeWarn}>Aguardando</span>
                       )}
+                    </td>
+                    <td>
+                      <form action={marcarDesligada} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <input type="hidden" name="spreadsheetId" value={x.spreadsheet_id} />
+                        {desligadas.has(x.spreadsheet_id) ? (
+                          <>
+                            <span className={s.badgeWarn}>
+                              Desligada{desligadas.get(x.spreadsheet_id) ? ` em ${dataBR(String(desligadas.get(x.spreadsheet_id)))}` : ''}
+                            </span>
+                            <input type="hidden" name="desligada" value="0" />
+                            <button type="submit" className={s.buttonSmall}>
+                              Reativar
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className={s.badgeGood}>Ativa</span>
+                            <input type="hidden" name="desligada" value="1" />
+                            <button type="submit" className={s.buttonSmall} title="Tira do filtro do Registro de Guias; o histórico continua">
+                              Desligar
+                            </button>
+                          </>
+                        )}
+                      </form>
                     </td>
                   </tr>
                 ))}

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   if (fn === 'getListaPsicologas') {
     const { data: planilhas } = await supabase.rpc('legacy_planilhas_nomes')
     const extras = (planilhas ?? [])
-      .filter((p) => p.ativo !== false && p.nome_abreviado)
+      .filter((p) => p.ativo !== false && !p.desligada && p.nome_abreviado)
       .map((p) => ({ nome: String(p.nome_abreviado).trim(), id: p.spreadsheet_id }))
     if (extras.length) {
       try {
