@@ -34,7 +34,7 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
   let erro: string | null = null
   if (cfg) {
     try {
-      const [sa, ex] = await Promise.all([saldoCora(cfg), extratoCora(cfg, inicio, fim)])
+      const [sa, ex] = await Promise.all([saldoCora(cfg), extratoCora(cfg, inicio, fim, hoje)])
       saldo = Number(sa.balance)
       extrato = ex
     } catch (e) {

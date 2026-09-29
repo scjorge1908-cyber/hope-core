@@ -59,7 +59,7 @@ function chamar(cfg: ConfigCora, metodo: string, caminho: string, headers: Recor
         cert: cfg.cert,
         key: cfg.key,
         headers: { Accept: 'application/json', ...headers, ...(corpo ? { 'Content-Length': Buffer.byteLength(corpo).toString() } : {}) },
-        timeout: 25_000,
+        timeout: 45_000,
       },
       (res) => {
         const partes: Buffer[] = []
@@ -67,7 +67,7 @@ function chamar(cfg: ConfigCora, metodo: string, caminho: string, headers: Recor
         res.on('end', () => resolve({ status: res.statusCode ?? 0, corpo: Buffer.concat(partes).toString('utf8') }))
       }
     )
-    req.on('timeout', () => req.destroy(new Error('Cora não respondeu em 25 s')))
+    req.on('timeout', () => req.destroy(new Error('Cora não respondeu em 45 s')))
     req.on('error', reject)
     if (corpo) req.write(corpo)
     req.end()
@@ -127,11 +127,10 @@ export type ExtratoCora = {
 
 export const saldoCora = (cfg: ConfigCora) => getCora<SaldoCora>(cfg, '/third-party/account/balance')
 
-/** Extrato do período (YYYY-MM-DD), todas as páginas (até 20 × 500). */
-export async function extratoCora(cfg: ConfigCora, inicio: string, fim: string): Promise<ExtratoCora> {
-  let pagina = 1
+/** Um trecho do extrato (todas as páginas, até 20 × 500). */
+async function extratoTrecho(cfg: ConfigCora, inicio: string, fim: string): Promise<ExtratoCora> {
   let total: ExtratoCora | null = null
-  for (; pagina <= 20; pagina++) {
+  for (let pagina = 1; pagina <= 20; pagina++) {
     const q = new URLSearchParams({ start: inicio, end: fim, page: String(pagina), perPage: '500', aggr: pagina === 1 ? 'true' : 'false' })
     const r = await getCora<ExtratoCora>(cfg, `/bank-statement/statement?${q}`)
     if (!total) total = { ...r, entries: [...(r.entries ?? [])] }
@@ -139,6 +138,54 @@ export async function extratoCora(cfg: ConfigCora, inicio: string, fim: string):
     if (!r.entries || r.entries.length < 500) break
   }
   return total ?? { entries: [] }
+}
+
+/** Divide o período em meses de calendário: [["2026-01-01","2026-01-31"], ...]. */
+export function fatiarPorMes(inicio: string, fim: string): [string, string][] {
+  const out: [string, string][] = []
+  let d = new Date(`${inicio}T12:00:00Z`)
+  const f = new Date(`${fim}T12:00:00Z`)
+  while (d <= f) {
+    const ultimo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 12))
+    const ate = ultimo < f ? ultimo : f
+    out.push([d.toISOString().slice(0, 10), ate.toISOString().slice(0, 10)])
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1, 12))
+  }
+  return out
+}
+
+/**
+ * Extrato do período (YYYY-MM-DD). Períodos longos são buscados mês a mês
+ * (6 de cada vez) — o Cora demora demais para montar um ano inteiro de uma vez.
+ * O fim nunca passa de hoje.
+ */
+export async function extratoCora(cfg: ConfigCora, inicio: string, fim: string, hoje?: string): Promise<ExtratoCora> {
+  const limite = hoje ?? new Date().toISOString().slice(0, 10)
+  const ate = fim > limite ? limite : fim
+  if (inicio > ate) return { entries: [] }
+  const fatias = fatiarPorMes(inicio, ate)
+  if (fatias.length === 1) return extratoTrecho(cfg, inicio, ate)
+
+  const partes: ExtratoCora[] = new Array(fatias.length)
+  let proximo = 0
+  const trabalhador = async () => {
+    while (proximo < fatias.length) {
+      const i = proximo++
+      partes[i] = await extratoTrecho(cfg, fatias[i][0], fatias[i][1])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(6, fatias.length) }, () => trabalhador()))
+
+  const entries = partes.flatMap((p) => p.entries ?? [])
+  const soma = (tipo: 'CREDIT' | 'DEBIT') =>
+    partes.reduce((t, p) => t + Number((tipo === 'CREDIT' ? p.aggregations?.creditTotal : p.aggregations?.debitTotal) ?? 0), 0)
+  return {
+    start: partes[0]?.start,
+    end: partes[partes.length - 1]?.end,
+    entries,
+    aggregations: { creditTotal: soma('CREDIT'), debitTotal: soma('DEBIT') },
+    header: partes.find((p) => p.header)?.header,
+  }
 }
 
 // ---------------- diagnóstico (sem revelar segredos) ----------------
