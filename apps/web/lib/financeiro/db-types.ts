@@ -351,6 +351,8 @@ export type FinanceDatabase = {
         Returns: { chave: string; nome: string; tipo: 'entrada' | 'saida'; categoria: string; por_regra: boolean; valor: Num; qtd: number; ultimo: string }[]
       }
       dre_classificar: { Args: { p_chave: string; p_tipo: string; p_categoria: string }; Returns: undefined }
+      // migration 023 — base da projeção (Monte Carlo em lib/financeiro/projecao.ts)
+      projecao_base: { Args: never; Returns: Json }
       // migration 018 — demonstrativo (XML) da Unimed vira previsto na Agenda
       previstos_demonstrativos_sync: { Args: never; Returns: number }
       // migration 017 — banco
