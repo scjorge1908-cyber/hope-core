@@ -218,6 +218,12 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
                               >
                                 {r.realized_source === 'banco' ? 'Conciliado Cora' : 'Confirmado'} {dataBR(r.realized_date).slice(0, 5)}
                               </span>
+                              {Math.abs(Number(r.realized_amount ?? 0) - Number(x.items_released)) > 0.01 && (
+                                <span className={s.muted} style={{ fontSize: 12, marginLeft: 6 }} title="Recebido no banco − liberado no XML">
+                                  {Number(r.realized_amount ?? 0) - Number(x.items_released) > 0 ? '+' : '−'}
+                                  {brl(Math.abs(Number(r.realized_amount ?? 0) - Number(x.items_released)))}
+                                </span>
+                              )}
                             </>
                           )
                         }

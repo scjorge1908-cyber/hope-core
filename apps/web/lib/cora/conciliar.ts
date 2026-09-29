@@ -24,11 +24,19 @@ function somarDias(iso: string, k: number) {
  * Busca o extrato do Cora dos últimos `dias`, grava no banco (sem duplicar)
  * e roda a conciliação automática com a Agenda (bank_registrar_extrato).
  */
-export async function sincronizarBanco(supabase: SupabaseClient<FinanceDatabase>, dias = 60): Promise<ResultadoConciliacao> {
+export async function sincronizarBanco(supabase: SupabaseClient<FinanceDatabase>, dias?: number): Promise<ResultadoConciliacao> {
   const cfg = configCora()
   if (!cfg) throw new Error('Integração com o Cora não configurada.')
   const fim = hojeSaoPaulo()
-  const inicio = somarDias(fim, -dias)
+  // sem `dias`: na 1ª vez lê desde 1º de janeiro; depois só o que é novo (com 15 dias de folga)
+  let inicio: string
+  if (dias != null) inicio = somarDias(fim, -dias)
+  else {
+    const janeiro = `${fim.slice(0, 4)}-01-01`
+    const { data: sync } = await supabase.from('bank_sync').select('last_period_start, last_period_end').maybeSingle()
+    if (!sync?.last_period_start || sync.last_period_start > janeiro) inicio = janeiro
+    else inicio = somarDias(sync.last_period_end && sync.last_period_end < fim ? sync.last_period_end : fim, -15)
+  }
   const ex = await extratoCora(cfg, inicio, fim, fim)
   // só o necessário para o banco (id, tipo, valor, data, descrição, contraparte)
   const entries = (ex.entries ?? []).map((e) => ({
