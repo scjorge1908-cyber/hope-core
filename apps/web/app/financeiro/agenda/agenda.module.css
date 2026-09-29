@@ -546,3 +546,14 @@
   border-color: var(--fin-accent);
   color: var(--fin-accent);
 }
+
+.filtroBotao.legendaBanco {
+  position: relative;
+  padding-right: 22px !important;
+}
+
+.filtroBotao.legendaBanco .marcaBanco {
+  top: 50%;
+  right: 9px;
+  transform: translateY(-50%);
+}
