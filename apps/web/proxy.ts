@@ -34,8 +34,9 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
   const isAuthRoute = url.pathname.startsWith('/login')
   const isDashboardRoute = url.pathname.startsWith('/dashboard')
+  const isFinanceiroRoute = url.pathname.startsWith('/financeiro')
 
-  if (isDashboardRoute && !user) {
+  if ((isDashboardRoute || isFinanceiroRoute) && !user) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }

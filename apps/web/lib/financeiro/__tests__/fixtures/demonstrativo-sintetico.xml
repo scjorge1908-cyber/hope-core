@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- DADOS INVENTADOS. Reproduz a estrutura real da Unimed (TISS 3.03.01):
+     total geral e glosas multiplicados por 100; guia com 2 sessões;
+     sessão repetida na mesma guia+data; glosa sem detalhe no total geral. -->
+<ans:mensagemTISS xmlns:ans="http://www.ans.gov.br/padroes/tiss/schemas">
+  <ans:cabecalho>
+    <ans:identificacaoTransacao>
+      <ans:tipoTransacao>DEMONSTRATIVO_ANALISE_CONTA</ans:tipoTransacao>
+      <ans:sequencialTransacao>1</ans:sequencialTransacao>
+      <ans:dataRegistroTransacao>2026-09-28</ans:dataRegistroTransacao>
+      <ans:horaRegistroTransacao>18:03:58</ans:horaRegistroTransacao>
+    </ans:identificacaoTransacao>
+    <ans:origem><ans:identificacaoPrestador><ans:CNPJ>00000000000191</ans:CNPJ></ans:identificacaoPrestador></ans:origem>
+    <ans:destino><ans:identificacaoPrestador><ans:codigoPrestadorNaOperadora>999999</ans:codigoPrestadorNaOperadora></ans:identificacaoPrestador></ans:destino>
+    <ans:Padrao>3.03.01</ans:Padrao>
+  </ans:cabecalho>
+  <ans:operadoraParaPrestador>
+    <ans:demonstrativosRetorno>
+      <ans:demonstrativoAnaliseConta>
+        <ans:cabecalhoDemonstrativo>
+          <ans:registroANS>000001</ans:registroANS>
+          <ans:numeroDemonstrativo>900001</ans:numeroDemonstrativo>
+          <ans:nomeOperadora>OPERADORA DE TESTE</ans:nomeOperadora>
+          <ans:numeroCNPJ>00000000000191</ans:numeroCNPJ>
+          <ans:dataEmissao>2026-09-25</ans:dataEmissao>
+        </ans:cabecalhoDemonstrativo>
+        <ans:dadosPrestador>
+          <ans:dadosContratado>
+            <ans:cnpjContratado>00000000000272</ans:cnpjContratado>
+            <ans:nomeContratado>CLINICA TESTE LTDA</ans:nomeContratado>
+          </ans:dadosContratado>
+          <ans:CNES>0000000</ans:CNES>
+        </ans:dadosPrestador>
+        <ans:dadosConta>
+          <ans:dadosProtocolo>
+            <ans:numeroLotePrestador>111</ans:numeroLotePrestador>
+            <ans:numeroProtocolo>111</ans:numeroProtocolo>
+            <ans:dataProtocolo>0001-01-01</ans:dataProtocolo>
+            <ans:situacaoProtocolo>6</ans:situacaoProtocolo>
+            <ans:relacaoGuias>
+              <ans:numeroGuiaPrestador>00100</ans:numeroGuiaPrestador>
+              <ans:numeroGuiaOperadora>500</ans:numeroGuiaOperadora>
+              <ans:senha>0001</ans:senha>
+              <ans:nomeBeneficiario>PACIENTE FICTICIO UM</ans:nomeBeneficiario>
+              <ans:numeroCarteira>00250000000000001</ans:numeroCarteira>
+              <ans:dataInicioFat>2026-08-04</ans:dataInicioFat>
+              <ans:horaInicioFat>10:00:00</ans:horaInicioFat>
+              <ans:dataFimFat>2026-08-11</ans:dataFimFat>
+              <ans:horaFimFat>10:00:00</ans:horaFimFat>
+              <ans:situacaoGuia>6</ans:situacaoGuia>
+              <ans:detalhesGuia>
+                <ans:dataRealizacao>2026-08-04</ans:dataRealizacao>
+                <ans:procedimento><ans:codigoTabela>22</ans:codigoTabela><ans:codigoProcedimento>50000470</ans:codigoProcedimento><ans:descricaoProcedimento>SESSAO DE PSICOTERAPIA INDIVIDUAL POR PSICOLOGO</ans:descricaoProcedimento></ans:procedimento>
+                <ans:grauParticipacao>00</ans:grauParticipacao>
+                <ans:valorInformado>33.10</ans:valorInformado>
+                <ans:qtdExecutada>1</ans:qtdExecutada>
+                <ans:valorProcessado>33.10</ans:valorProcessado>
+                <ans:valorLiberado>33.10</ans:valorLiberado>
+              </ans:detalhesGuia>
+              <ans:detalhesGuia>
+                <ans:dataRealizacao>2026-08-11</ans:dataRealizacao>
+                <ans:procedimento><ans:codigoTabela>22</ans:codigoTabela><ans:codigoProcedimento>50000470</ans:codigoProcedimento><ans:descricaoProcedimento>SESSAO DE PSICOTERAPIA INDIVIDUAL POR PSICOLOGO</ans:descricaoProcedimento></ans:procedimento>
+                <ans:grauParticipacao>00</ans:grauParticipacao>
+                <ans:valorInformado>33.10</ans:valorInformado>
+                <ans:qtdExecutada>1</ans:qtdExecutada>
+                <ans:valorProcessado>33.10</ans:valorProcessado>
+                <ans:valorLiberado>0.00</ans:valorLiberado>
+                <ans:relacaoGlosa><ans:valorGlosa>3310.00</ans:valorGlosa><ans:tipoGlosa>1702</ans:tipoGlosa></ans:relacaoGlosa>
+              </ans:detalhesGuia>
+              <ans:valorInformadoGuia>66.20</ans:valorInformadoGuia>
+              <ans:valorProcessadoGuia>66.20</ans:valorProcessadoGuia>
+              <ans:valorLiberadoGuia>33.10</ans:valorLiberadoGuia>
+              <ans:valorGlosaGuia>33.10</ans:valorGlosaGuia>
+            </ans:relacaoGuias>
+            <ans:relacaoGuias>
+              <ans:numeroGuiaPrestador>00200</ans:numeroGuiaPrestador>
+              <ans:numeroGuiaOperadora>600</ans:numeroGuiaOperadora>
+              <ans:senha>0002</ans:senha>
+              <ans:nomeBeneficiario>PACIENTE FICTICIO DOIS</ans:nomeBeneficiario>
+              <ans:numeroCarteira>08650000000000002</ans:numeroCarteira>
+              <ans:dataInicioFat>2026-07-30</ans:dataInicioFat>
+              <ans:horaInicioFat>09:00:00</ans:horaInicioFat>
+              <ans:dataFimFat>2026-07-30</ans:dataFimFat>
+              <ans:horaFimFat>09:00:00</ans:horaFimFat>
+              <ans:situacaoGuia>6</ans:situacaoGuia>
+              <ans:detalhesGuia>
+                <ans:dataRealizacao>2026-07-30</ans:dataRealizacao>
+                <ans:procedimento><ans:codigoTabela>22</ans:codigoTabela><ans:codigoProcedimento>50000470</ans:codigoProcedimento><ans:descricaoProcedimento>SESSAO DE PSICOTERAPIA INDIVIDUAL POR PSICOLOGO</ans:descricaoProcedimento></ans:procedimento>
+                <ans:grauParticipacao>00</ans:grauParticipacao>
+                <ans:valorInformado>45.54</ans:valorInformado>
+                <ans:qtdExecutada>1</ans:qtdExecutada>
+                <ans:valorProcessado>45.54</ans:valorProcessado>
+                <ans:valorLiberado>45.54</ans:valorLiberado>
+              </ans:detalhesGuia>
+              <ans:detalhesGuia>
+                <ans:dataRealizacao>2026-07-30</ans:dataRealizacao>
+                <ans:procedimento><ans:codigoTabela>22</ans:codigoTabela><ans:codigoProcedimento>50000470</ans:codigoProcedimento><ans:descricaoProcedimento>SESSAO DE PSICOTERAPIA INDIVIDUAL POR PSICOLOGO</ans:descricaoProcedimento></ans:procedimento>
+                <ans:grauParticipacao>00</ans:grauParticipacao>
+                <ans:valorInformado>45.54</ans:valorInformado>
+                <ans:qtdExecutada>1</ans:qtdExecutada>
+                <ans:valorProcessado>45.54</ans:valorProcessado>
+                <ans:valorLiberado>45.54</ans:valorLiberado>
+              </ans:detalhesGuia>
+              <ans:valorInformadoGuia>91.08</ans:valorInformadoGuia>
+              <ans:valorProcessadoGuia>91.08</ans:valorProcessadoGuia>
+              <ans:valorLiberadoGuia>91.08</ans:valorLiberadoGuia>
+              <ans:valorGlosaGuia>0.00</ans:valorGlosaGuia>
+            </ans:relacaoGuias>
+            <ans:valorInformadoProtocolo>157.28</ans:valorInformadoProtocolo>
+            <ans:valorProcessadoProtocolo>157.28</ans:valorProcessadoProtocolo>
+            <ans:valorLiberadoProtocolo>124.18</ans:valorLiberadoProtocolo>
+            <ans:valorGlosaProtocolo>33.10</ans:valorGlosaProtocolo>
+          </ans:dadosProtocolo>
+        </ans:dadosConta>
+        <ans:valorInformadoGeral>22348.00</ans:valorInformadoGeral>
+        <ans:valorProcessadoGeral>22348.00</ans:valorProcessadoGeral>
+        <ans:valorLiberadoGeral>12418.00</ans:valorLiberadoGeral>
+        <ans:valorGlosaGeral>9930.00</ans:valorGlosaGeral>
+      </ans:demonstrativoAnaliseConta>
+    </ans:demonstrativosRetorno>
+  </ans:operadoraParaPrestador>
+  <ans:epilogo><ans:hash>00000000000000000000000000000000</ans:hash></ans:epilogo>
+</ans:mensagemTISS>
