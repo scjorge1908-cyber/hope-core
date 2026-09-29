@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, int } from '@/lib/financeiro/format'
 import type { GuiaDivergenciaRow } from '@/lib/financeiro/db-types'
@@ -61,14 +62,13 @@ export default async function DivergenciasPage() {
 
   return (
     <>
-      <h1 className={s.pageTitle}>Divergências: planilhas × Unimed</h1>
-      <p className={s.lead}>
+      <Titulo titulo="Divergências: planilhas × Unimed">
         Cruza o número da guia da aba Atendimentos de cada psicóloga (coluna E) e o status da coluna S com os
         demonstrativos da Unimed já importados. Só aparecem guias que estão nos XMLs. Clique em “Abrir” para ir
         direto à guia no Registro de Guias (abre em outra aba, já filtrada e com a janela da guia aberta) e corrigir
         — grava na planilha e no banco. Psicólogas que não estão na aba ID do Registro de Guia só têm o link da
         planilha dela.
-      </p>
+      </Titulo>
 
       {error && <div className={s.alertBad}>Erro: {error.message}</div>}
 

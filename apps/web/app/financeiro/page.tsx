@@ -1,3 +1,4 @@
+import { Titulo } from './titulo'
 import Link from 'next/link'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, dataBR, int, mesBR, pct } from '@/lib/financeiro/format'
@@ -89,11 +90,10 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
 
   return (
     <>
-      <h1 className={s.pageTitle}>Painel financeiro</h1>
-      <p className={s.lead}>
+      <Titulo titulo="Painel financeiro">
         Tudo aqui vem dos demonstrativos importados. Os meses são os <strong>meses do atendimento</strong>, não os do
         demonstrativo. Uma sessão que reaparece em outro demonstrativo é contada uma vez só, com a situação mais recente.
-      </p>
+      </Titulo>
 
       {plans.length > 1 && (
         <nav className={s.planPicker} aria-label="Plano de saúde">

@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { BotaoSincronizar } from '../sincronizar/botao-sincronizar'
 import { brl, dataBR, int } from '@/lib/financeiro/format'
@@ -80,12 +81,11 @@ export default async function ConferenciaPage({ searchParams }: PageProps<'/fina
 
   return (
     <>
-      <h1 className={s.pageTitle}>Conferência de guias</h1>
-      <p className={s.lead}>
+      <Titulo titulo="Conferência de guias">
         Cada sessão cruzada nas 3 pontas: <b>psicóloga</b> (aba Atendimentos — guia na coluna E, anexo na coluna H, status na
         coluna S), <b>admin</b> (lançada no ADM Registro de Guia) e <b>plano</b> (XML da Unimed sessão a sessão; lote da Orizon
         para o Bradesco). Outros planos ainda não têm retorno integrado.
-      </p>
+      </Titulo>
       <BotaoSincronizar />
 
       <form className={c.filtros}>

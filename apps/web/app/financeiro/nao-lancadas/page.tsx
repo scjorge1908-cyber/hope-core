@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { dataBR, int } from '@/lib/financeiro/format'
 import { agruparNaoLancadas, type LinhaConferencia } from '@/lib/financeiro/conferencia'
@@ -70,11 +71,10 @@ export default async function NaoLancadasPage({ searchParams }: PageProps<'/fina
   return (
     <>
       <div className={n.naoImprimir}>
-        <h1 className={s.pageTitle}>Guias não lançadas</h1>
-        <p className={s.lead}>
+        <Titulo titulo="Guias não lançadas">
           Sessões <strong>realizadas</strong> nas planilhas das psicólogas (aba Atendimentos) cuja guia ainda <strong>não está no ADM
           Registro de Guia</strong>. Faltas não entram. Use ↗ para abrir o Registro já na psicóloga, no mês e na guia.
-        </p>
+        </Titulo>
 
         <form className={n.filtros}>
           <label className={s.field}>

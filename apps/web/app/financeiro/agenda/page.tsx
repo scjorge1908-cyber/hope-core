@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, dataBR } from '@/lib/financeiro/format'
 import {
@@ -152,12 +153,11 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
 
   return (
     <>
-      <h1 className={s.pageTitle}>Agenda financeira</h1>
-      <p className={s.lead}>
+      <Titulo titulo="Agenda financeira">
         O que entra e o que sai em cada dia, por plano de saúde e por despesa. Bradesco vem do relatório da Orizon (45 dias da
         data de envio, no próximo dia útil); Unimed vem das notas fiscais; o resto é lançado aqui. Azul = previsto, verde =
         recebido/pago, vermelho = data passou e ainda não foi confirmado.
-      </p>
+      </Titulo>
 
       {ok && <div className={s.alertGood}>{ok}</div>}
       {erro && <div className={s.alertBad}>{erro}</div>}

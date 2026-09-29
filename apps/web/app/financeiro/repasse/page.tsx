@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { dataBR } from '@/lib/financeiro/format'
 import { MESES, processarRelatorio, type BaseRpaLegado, type LinhaRelatorio, type TipoRelatorio } from '@/lib/financeiro/rpa-legado'
@@ -57,12 +58,11 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
   return (
     <>
       <div className={r.naoImprimir}>
-        <h1 className={s.pageTitle}>Repasse das psicólogas (RPA)</h1>
-        <p className={s.lead}>
+        <Titulo titulo="Repasse das psicólogas (RPA)">
           Mesma regra e mesmo cálculo do Sistema Mestre RPA, sobre a cópia das planilhas no banco: mês pela coluna A
           (registro), valor da coluna N, status da coluna S (“OK” conta, vazio é pendência, outro texto é ignorado); PF
           40% com INSS de 11% até o teto; CNPJ com o percentual da aba ExencaoCNPJ (padrão 45%), sem INSS.
-        </p>
+        </Titulo>
 
         <form className={s.form} style={{ maxWidth: 720, marginBottom: 20 }}>
           <div className={s.formRow}>

@@ -718,3 +718,69 @@
     box-shadow: none;
   }
 }
+
+/* ---------------- título com "?" (explicação escondida) ---------------- */
+.tituloLinha {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.tituloLinha .pageTitle {
+  margin-bottom: 0;
+}
+
+.infoBotao {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--fin-border-strong);
+  background: var(--fin-surface);
+  color: var(--fin-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.infoBotao:hover,
+.infoBotaoAberto {
+  color: var(--fin-accent);
+  border-color: var(--fin-accent);
+  background: var(--fin-accent-soft);
+}
+
+.infoBotao:focus-visible {
+  outline: 2px solid var(--fin-accent);
+  outline-offset: 2px;
+}
+
+.infoBalao {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 15;
+  width: min(620px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--fin-border);
+  background: var(--fin-surface);
+  box-shadow: var(--fin-shadow-md);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fin-text);
+}
+
+@media print {
+  .infoBotao,
+  .infoBalao {
+    display: none !important;
+  }
+}

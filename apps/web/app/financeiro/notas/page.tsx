@@ -1,3 +1,4 @@
+import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, dataBR } from '@/lib/financeiro/format'
 import { NotaForm } from './nota-form'
@@ -36,11 +37,10 @@ export default async function NotasPage() {
 
   return (
     <>
-      <h1 className={s.pageTitle}>Notas fiscais para as operadoras</h1>
-      <p className={s.lead}>
+      <Titulo titulo="Notas fiscais para as operadoras">
         Para cada demonstrativo, a clínica emite a nota do valor liberado e a operadora paga a nota. Registre aqui a nota e,
         quando o dinheiro entrar, marque como paga. O valor já vem preenchido com o liberado do demonstrativo.
-      </p>
+      </Titulo>
 
       {(stRes.error || invRes.error) && (
         <div className={s.alertBad}>Erro ao carregar: {(stRes.error ?? invRes.error)?.message}</div>
