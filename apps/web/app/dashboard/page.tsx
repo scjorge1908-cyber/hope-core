@@ -31,6 +31,7 @@ function Menu({ email }: { email: string }) {
         <a href="/financeiro/divergencias">Divergências</a>
         <a href="/financeiro/conferencia">Conferência</a>
         <a href="/financeiro/nao-lancadas">Não lançadas</a>
+        <a href="/financeiro/dre">DRE</a>
         <a href="/financeiro/repasse">Repasse</a>
         <a href="/financeiro">Unimed</a>
         <a href="/financeiro/importar">Importar XML</a>

@@ -344,6 +344,13 @@ export type FinanceDatabase = {
       // migration 015
       legacy_marcar_desligada: { Args: { p_spreadsheet_id: string; p_desligada: boolean }; Returns: undefined }
       // migration 016 — guias no ADM sem sessão na aba Atendimentos
+      // migration 022 — DRE (caixa, extrato Cora)
+      dre_caixa: { Args: { p_ano: number }; Returns: { mes: number; grupo: string; categoria: string; detalhe: string | null; valor: Num; qtd: number }[] }
+      dre_contrapartes: {
+        Args: { p_ano: number }
+        Returns: { chave: string; nome: string; tipo: 'entrada' | 'saida'; categoria: string; por_regra: boolean; valor: Num; qtd: number; ultimo: string }[]
+      }
+      dre_classificar: { Args: { p_chave: string; p_tipo: string; p_categoria: string }; Returns: undefined }
       // migration 018 — demonstrativo (XML) da Unimed vira previsto na Agenda
       previstos_demonstrativos_sync: { Args: never; Returns: number }
       // migration 017 — banco

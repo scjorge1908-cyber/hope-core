@@ -1,0 +1,154 @@
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.tabela {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  min-width: 100%;
+}
+
+.tabela th,
+.tabela td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--fin-border);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabela thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fin-muted);
+  background: var(--fin-surface-2);
+  position: sticky;
+  top: 0;
+}
+
+.tabela .rotulo {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--fin-surface);
+  min-width: 250px;
+  max-width: 300px;
+  white-space: normal;
+  z-index: 1;
+}
+
+.tabela thead .rotulo {
+  background: var(--fin-surface-2);
+  z-index: 2;
+}
+
+.sinal {
+  display: inline-block;
+  width: 18px;
+  color: var(--fin-muted);
+  font-weight: 700;
+}
+
+.item .rotulo {
+  padding-left: 28px;
+}
+
+.subitem td {
+  color: var(--fin-muted);
+  font-size: 12px;
+}
+
+.subitem .rotulo {
+  padding-left: 46px;
+}
+
+.titulo td {
+  font-weight: 600;
+}
+
+.subtotal td {
+  font-weight: 700;
+  background: var(--fin-surface-2);
+}
+
+.subtotal .rotulo {
+  background: var(--fin-surface-2);
+}
+
+.resultado td {
+  font-weight: 800;
+  background: var(--fin-accent-soft);
+  border-top: 2px solid var(--fin-accent);
+}
+
+.resultado .rotulo {
+  background: var(--fin-accent-soft);
+}
+
+.neg {
+  color: var(--fin-bad);
+}
+
+.pct {
+  color: var(--fin-muted);
+  font-size: 12px;
+}
+
+.classForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.classForm select {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--fin-border-strong);
+  border-radius: 6px;
+  background: var(--fin-surface);
+  color: var(--fin-text);
+  max-width: 280px;
+}
+
+.auto {
+  font-size: 11px;
+  color: var(--fin-muted);
+}
+
+.abas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: var(--fin-surface);
+  border: 1px solid var(--fin-border);
+  border-radius: 12px;
+}
+
+.aba,
+.abaAtiva {
+  padding: 6px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--fin-muted);
+}
+
+.aba:hover {
+  color: var(--fin-text);
+  background: var(--fin-surface-2);
+}
+
+.abaAtiva {
+  color: var(--fin-accent);
+  background: var(--fin-accent-soft);
+}
