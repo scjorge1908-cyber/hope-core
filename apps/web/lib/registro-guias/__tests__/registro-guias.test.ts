@@ -31,8 +31,8 @@ describe('página Registro de Guias = Index.html original', () => {
     for (const m of original.html.matchAll(/\.(\w+)\(/g)) if (doCode.has(m[1])) chamadas.add(m[1])
     expect(chamadas.size).toBeGreaterThan(8)
     for (const fn of chamadas) expect(FUNCOES_PONTE as readonly string[]).toContain(fn)
-    // e todas existem no Code.gs original (menos a nossa hopeMapaPsicologas, que está na ponte)
-    for (const fn of FUNCOES_PONTE.filter((f) => f !== 'hopeMapaPsicologas')) {
+    // e todas existem no Code.gs original (menos as nossas hope*, que estão na ponte)
+    for (const fn of FUNCOES_PONTE.filter((f) => !f.startsWith('hope'))) {
       expect(CODE_LEGADO).toMatch(new RegExp(`function ${fn}\\(`))
     }
   })
@@ -88,5 +88,26 @@ describe('PonteRegistroGuias.gs (doPost) com o Code.gs original', () => {
   it('hopeMapaPsicologas devolve nome e ID limpo da aba ID', () => {
     const { chamar } = ambiente()
     expect(chamar('hopeMapaPsicologas', []).resultado).toEqual([{ nome: 'PSI T', id: ID }])
+  })
+
+  it('hopeListaPsicologasCompleta inclui na aba ID só quem falta (por ID e por nome) e devolve a lista', () => {
+    const { chamar } = ambiente()
+    const novo = 'OUTRA_PLANILHA_abcdefghij1234567890'
+    const r = chamar('hopeListaPsicologasCompleta', [
+      [
+        { nome: 'PSI T', id: ID }, // já está
+        { nome: 'psi t', id: 'MESMO_NOME_abcdefghij1234567890' }, // nome repetido
+        { nome: 'PSI Nova', id: novo },
+        { nome: 'PSI Ruim', id: 'curto' }, // ID inválido
+      ],
+    ])
+    expect(r).toMatchObject({ ok: true, resultado: ['PSI Nova', 'PSI T'] })
+    expect(chamar('hopeMapaPsicologas', []).resultado).toEqual([
+      { nome: 'PSI T', id: ID },
+      { nome: 'PSI Nova', id: novo },
+    ])
+    // segunda vez não duplica
+    chamar('hopeListaPsicologasCompleta', [[{ nome: 'PSI Nova', id: novo }]])
+    expect(chamar('hopeMapaPsicologas', []).resultado).toHaveLength(2)
   })
 })

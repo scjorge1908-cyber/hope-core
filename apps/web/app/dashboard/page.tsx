@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { alertas, indicadores, rotuloEixo, rotuloMes, type Painel } from '@/lib/painel/painel'
 import { Barras, Colunas, ColunasDuplas, MiniBarra } from './graficos'
+import { BotaoSincronizar } from '@/app/financeiro/sincronizar/botao-sincronizar'
 import d from './dashboard.module.css'
 
 export const metadata = { title: 'Painel da clínica — HOPE CORE' }
@@ -466,6 +467,9 @@ export default async function DashboardPage() {
           <span>Registro de Guias: {quando(p.atualizacao.bd_guias)}</span>
           <span>Orizon: {quando(p.atualizacao.ultima_orizon)}</span>
           <span>Pacientes são contados sem expor nomes.</span>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <BotaoSincronizar compacto />
         </div>
 
         {diagnostico}

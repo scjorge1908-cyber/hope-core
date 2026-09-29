@@ -46,6 +46,24 @@ export async function POST(request: NextRequest) {
     return responder({ resultado: data ?? [] })
   }
 
+  // Filtro "Psicóloga" com TODAS: inclui na aba ID do Registro quem está no
+  // Calculo RPA e falta lá (hopeListaPsicologasCompleta). Se a ponte ainda
+  // não tiver essa função, cai na lista original.
+  if (fn === 'getListaPsicologas') {
+    const { data: planilhas } = await supabase.rpc('legacy_planilhas_nomes')
+    const extras = (planilhas ?? [])
+      .filter((p) => p.ativo !== false && p.nome_abreviado)
+      .map((p) => ({ nome: String(p.nome_abreviado).trim(), id: p.spreadsheet_id }))
+    if (extras.length) {
+      try {
+        const { resultado } = await chamarPonte('hopeListaPsicologasCompleta', [extras])
+        return responder({ resultado })
+      } catch (e) {
+        if (!/Função não permitida/.test((e as Error).message)) return responder({ erro: (e as Error).message }, 502)
+      }
+    }
+  }
+
   if (!funcaoPermitida(fn)) return responder({ erro: `Função não permitida: ${fn}` }, 400)
 
   try {

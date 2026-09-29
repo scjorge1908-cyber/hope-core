@@ -43,7 +43,8 @@ function ponteFuncoes_() {
     buscarTelefonePaciente: buscarTelefonePaciente,
     buscarGlosa: buscarGlosa,
     verificarEAplicarGlosasPendentes: verificarEAplicarGlosasPendentes,
-    hopeMapaPsicologas: hopeMapaPsicologas
+    hopeMapaPsicologas: hopeMapaPsicologas,
+    hopeListaPsicologasCompleta: hopeListaPsicologasCompleta
   };
 }
 
@@ -103,6 +104,48 @@ function hopeMapaPsicologas() {
     out.push({ nome: nome, id: id });
   }
   return out;
+}
+
+/**
+ * Lista do filtro "Psicóloga" com TODAS as psicólogas: antes de devolver
+ * getListaPsicologas(), acrescenta no fim da aba ID quem está no Calculo RPA
+ * (lista enviada pelo HOPE CORE: [{nome, id}]) e ainda não está aqui.
+ * Compara pelo ID da planilha e pelo nome; nunca altera nem apaga linhas.
+ */
+function hopeListaPsicologasCompleta(extras) {
+  try {
+    if (Array.isArray(extras) && extras.length) {
+      var lock = LockService.getScriptLock();
+      if (lock.tryLock(15 * 1000)) {
+        try {
+          var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(NOME_ABA_ID);
+          if (aba) {
+            var atuais = hopeMapaPsicologas();
+            var ids = {}, nomes = {};
+            atuais.forEach(function (x) { ids[x.id] = true; nomes[normalizarTexto(x.nome)] = true; });
+            var novas = [];
+            extras.forEach(function (x) {
+              var nome = String((x && x.nome) || '').trim();
+              var id = String((x && x.id) || '').trim();
+              if (!nome || !/^[a-zA-Z0-9-_]{20,}$/.test(id)) return;
+              if (ids[id] || nomes[normalizarTexto(nome)]) return;
+              ids[id] = true; nomes[normalizarTexto(nome)] = true;
+              novas.push([nome, id]);
+            });
+            if (novas.length) {
+              aba.getRange(aba.getLastRow() + 1, 1, novas.length, 2).setValues(novas);
+              console.log('Aba ID: incluídas ' + novas.map(function (n) { return n[0]; }).join(', '));
+            }
+          }
+        } finally {
+          lock.releaseLock();
+        }
+      }
+    }
+  } catch (e) {
+    console.log('hopeListaPsicologasCompleta: ' + e.message);
+  }
+  return getListaPsicologas();
 }
 
 // ---------------- Espelho da aba BD_GUIAS no Supabase ----------------

@@ -2,6 +2,7 @@ import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { dataBR } from '@/lib/financeiro/format'
 import { MESES, processarRelatorio, type BaseRpaLegado, type LinhaRelatorio, type TipoRelatorio } from '@/lib/financeiro/rpa-legado'
 import { BotaoImprimir } from './botao-imprimir'
+import { BotaoSincronizar } from '../sincronizar/botao-sincronizar'
 import s from '../financeiro.module.css'
 import r from './relatorio.module.css'
 
@@ -222,9 +223,10 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
       <section className={`${s.section} ${r.naoImprimir}`} style={{ marginTop: 24 }}>
         <h2 className={s.sectionTitle}>Sincronização das planilhas</h2>
         <p className={s.sectionNote}>Psicólogas da aba ID do Calculo RPA, na mesma ordem.</p>
+        <BotaoSincronizar />
         {!status?.length ? (
           <p className={s.muted} style={{ fontSize: 14, marginBottom: 10 }}>
-            Nenhuma planilha recebida ainda. Rode <code>sincronizarPlanilhasSupabase()</code> no Apps Script do Calculo RPA.
+            Nenhuma planilha recebida ainda. Clique em “Sincronizar planilhas” (ou rode <code>sincronizarPlanilhasSupabase()</code> no Apps Script do Calculo RPA).
           </p>
         ) : (
           <div className={s.tableWrap}>

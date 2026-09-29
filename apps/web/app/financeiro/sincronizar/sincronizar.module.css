@@ -1,0 +1,101 @@
+.caixa {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+}
+
+.compacto {
+  margin: 0;
+}
+
+.botao {
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--fin-accent, #1d4ed8);
+  color: #fff;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.botao:disabled {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+.botao:focus-visible {
+  outline: 2px solid var(--fin-accent, #1d4ed8);
+  outline-offset: 2px;
+}
+
+.icone {
+  display: inline-block;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.girando {
+  animation: girar 1s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.msg {
+  font-size: 13px;
+  color: var(--fin-muted, #5f6b7a);
+}
+
+.msgOk {
+  color: var(--fin-good, #146c43);
+  font-weight: 600;
+}
+
+.msgErro {
+  color: var(--fin-bad, #b42318);
+  font-weight: 600;
+}
+
+.barra {
+  flex-basis: 100%;
+  max-width: 360px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--fin-border, #e3e6eb);
+  overflow: hidden;
+}
+
+.preenchido {
+  display: block;
+  height: 100%;
+  background: var(--fin-accent, #1d4ed8);
+  transition: width 0.4s ease;
+}
+
+@media (max-width: 640px) {
+  .botao {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .botao {
+    background: var(--fin-accent, #7aa2ff);
+    color: #0f1216;
+  }
+  .preenchido {
+    background: var(--fin-accent, #7aa2ff);
+  }
+}

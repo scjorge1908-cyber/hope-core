@@ -1,4 +1,5 @@
 import { requireFinanceAccess } from '@/lib/financeiro/server'
+import { BotaoSincronizar } from '../sincronizar/botao-sincronizar'
 import { brl, dataBR, int } from '@/lib/financeiro/format'
 import {
   PROBLEMAS,
@@ -85,6 +86,7 @@ export default async function ConferenciaPage({ searchParams }: PageProps<'/fina
         coluna S), <b>admin</b> (lançada no ADM Registro de Guia) e <b>plano</b> (XML da Unimed sessão a sessão; lote da Orizon
         para o Bradesco). Outros planos ainda não têm retorno integrado.
       </p>
+      <BotaoSincronizar />
 
       <form className={c.filtros}>
         <label className={s.field}>

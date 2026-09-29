@@ -15,6 +15,7 @@ export const FUNCOES_PONTE = [
   'buscarGlosa',
   'verificarEAplicarGlosasPendentes',
   'hopeMapaPsicologas',
+  'hopeListaPsicologasCompleta',
 ] as const
 
 /** Funções que gravam na planilha → depois de confirmadas, espelhamos no banco. */
