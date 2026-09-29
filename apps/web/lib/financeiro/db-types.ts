@@ -282,6 +282,8 @@ export type FinanceDatabase = {
       painel_gestao: { Args: never; Returns: Json }
       // migration 013 — conferência de guias (3 pontas)
       conferencia_guias: { Args: { p_ano: number; p_mes: number }; Returns: import('./conferencia').LinhaConferencia[] }
+      // migration 014
+      legacy_planilhas_nomes: { Args: never; Returns: { spreadsheet_id: string; nome_abreviado: string | null; nome_completo: string | null; ativo: boolean }[] }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

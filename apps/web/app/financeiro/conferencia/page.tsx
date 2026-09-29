@@ -35,10 +35,16 @@ export default async function ConferenciaPage({ searchParams }: PageProps<'/fina
   const psiFiltro = typeof sp.psi === 'string' ? sp.psi : ''
   const probFiltro = (typeof sp.prob === 'string' ? sp.prob : '') as CodigoProblema | 'todos' | 'ok' | ''
 
-  const { data, error } = await supabase.rpc('conferencia_guias', { p_ano: ano, p_mes: mes })
+  const [{ data, error }, { data: sincronizadas }] = await Promise.all([
+    supabase.rpc('conferencia_guias', { p_ano: ano, p_mes: mes }),
+    supabase.rpc('legacy_planilhas_nomes'),
+  ])
   const linhas = (data ?? []) as LinhaConferencia[]
 
-  const nomesComPlanilha = new Set(linhas.filter((l) => l.origem === 'sessao').map((l) => chaveNome(l.psicologa)))
+  // psicólogas cujas planilhas estão na aba ID do Cálculo RPA (sincronizadas de hora em hora)
+  const nomesComPlanilha = new Set(
+    (sincronizadas ?? []).flatMap((p) => [chaveNome(p.nome_abreviado), chaveNome(p.nome_completo)]).filter(Boolean)
+  )
   const resumo = resumir(linhas)
   const totalProb = Object.fromEntries(ORDEM_PROB.map((p) => [p, 0])) as Record<CodigoProblema, number>
   const comProb = linhas.map((l) => ({ l, ps: problemas(l) }))
@@ -155,7 +161,7 @@ export default async function ConferenciaPage({ searchParams }: PageProps<'/fina
                 <tr key={r.psicologa}>
                   <td>
                     <a href={link({ psi: r.psicologa, prob: '' })}>{r.psicologa}</a>
-                    {r.soAdmin > 0 && !nomesComPlanilha.has(chaveNome(r.psicologa)) && (
+                    {!nomesComPlanilha.has(chaveNome(r.psicologa)) && (
                       <span className={s.badgeWarn} style={{ marginLeft: 6 }} title="Está no ADM Registro de Guia, mas a planilha dela não está na aba ID do Cálculo RPA (não é sincronizada).">
                         planilha não sincronizada
                       </span>
