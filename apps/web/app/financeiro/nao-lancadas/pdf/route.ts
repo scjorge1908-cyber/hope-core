@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { getFinanceAccess } from '@/lib/financeiro/server'
-import { agruparNaoLancadas, type LinhaConferencia } from '@/lib/financeiro/conferencia'
+import { agruparAdmSemSessao, agruparNaoLancadas, type LinhaAdmSemSessao, type LinhaConferencia, type PsicologaNaoLancada } from '@/lib/financeiro/conferencia'
 import { hojeSaoPaulo } from '@/lib/financeiro/agenda'
 import { gerarPdfNaoLancadas } from '@/lib/financeiro/pdf-nao-lancadas'
 
@@ -42,17 +42,25 @@ export async function GET(request: NextRequest) {
   if (somarMes(de, 11) < ate) de = somarMes(ate, -11)
   const psi = q.get('psi') ?? ''
   const incluirSemGuia = q.get('semguia') !== '0'
+  const modo: 'adm' | 'planilha' = q.get('modo') === 'planilha' ? 'planilha' : 'adm'
 
-  const meses: string[] = []
-  for (let m = de; m <= ate; m = somarMes(m, 1)) meses.push(m)
-  const respostas = await Promise.all(
-    meses.map((m) => acesso.supabase.rpc('conferencia_guias', { p_ano: Number(m.slice(0, 4)), p_mes: Number(m.slice(5, 7)) }))
-  )
-  const erro = respostas.find((r) => r.error)?.error
-  if (erro) return NextResponse.json({ erro: erro.message }, { status: 500 })
-  const linhas = respostas.flatMap((r) => (r.data ?? []) as LinhaConferencia[])
-
-  const todas = agruparNaoLancadas(linhas, incluirSemGuia)
+  let todas: PsicologaNaoLancada[]
+  if (modo === 'adm') {
+    const fim = new Date(Date.UTC(Number(ate.slice(0, 4)), Number(ate.slice(5, 7)), 0)).toISOString().slice(0, 10)
+    const { data, error } = await acesso.supabase.rpc('guias_adm_sem_sessao', { p_de: `${de}-01`, p_ate: fim })
+    if (error) return NextResponse.json({ erro: error.message }, { status: 500 })
+    todas = agruparAdmSemSessao((data ?? []) as LinhaAdmSemSessao[])
+  } else {
+    const meses: string[] = []
+    for (let m = de; m <= ate; m = somarMes(m, 1)) meses.push(m)
+    const respostas = await Promise.all(
+      meses.map((m) => acesso.supabase.rpc('conferencia_guias', { p_ano: Number(m.slice(0, 4)), p_mes: Number(m.slice(5, 7)) }))
+    )
+    const erro = respostas.find((r) => r.error)?.error
+    if (erro) return NextResponse.json({ erro: erro.message }, { status: 500 })
+    const linhas = respostas.flatMap((r) => (r.data ?? []) as LinhaConferencia[])
+    todas = agruparNaoLancadas(linhas, incluirSemGuia)
+  }
   const grupos = psi ? todas.filter((g) => g.psicologa === psi) : todas.sort((a, b) => a.psicologa.localeCompare(b.psicologa, 'pt-BR'))
   const periodo = de === ate ? rotuloMes(de) : `${rotuloMes(de)} a ${rotuloMes(ate)}`
   const agora = new Date()
@@ -61,9 +69,9 @@ export async function GET(request: NextRequest) {
   // psicóloga escolhida sem pendência: PDF com o nome dela e "nenhuma pendência"
   const bytes = await gerarPdfNaoLancadas(
     psi && !grupos.length ? [{ psicologa: psi, spreadsheet_id: null, pacientes: [], guias: 0, sessoes: 0 }] : grupos,
-    { periodo, geradoEm, incluirSemGuia }
+    { periodo, geradoEm, incluirSemGuia, modo }
   )
-  const nome = `Guias-pendentes-${arquivo(psi || 'todas')}-${de}${de === ate ? '' : `-a-${ate}`}.pdf`
+  const nome = `${modo === 'adm' ? 'Guias-sem-sessao-na-planilha' : 'Guias-pendentes'}-${arquivo(psi || 'todas')}-${de}${de === ate ? '' : `-a-${ate}`}.pdf`
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       'content-type': 'application/pdf',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { agruparNaoLancadas, chaveNome, normalizarPlano, problemas, resumir, type LinhaConferencia } from '../conferencia'
+import { agruparAdmSemSessao, agruparNaoLancadas, chaveNome, rotuloSemana, normalizarPlano, problemas, resumir, type LinhaConferencia } from '../conferencia'
 
 const base: LinhaConferencia = {
   origem: 'sessao', spreadsheet_id: 's1', psicologa: 'PSI A', paciente: 'X', data_sessao: '2026-08-10', guia: '50140000001',
@@ -76,5 +76,29 @@ describe('agruparNaoLancadas', () => {
   it('sem incluir as sem nº de guia', () => {
     const r = agruparNaoLancadas([l({ ...fora, guia: '', paciente: 'Caio' })], false)
     expect(r).toEqual([])
+  })
+})
+
+describe('agruparAdmSemSessao', () => {
+  const b = { psicologa: 'Psi Josane', psicologa_adm: 'Psi Josane', spreadsheet_id: 'sj', desligada: false, plano: 'UNIMED', linha_bd: 2 }
+  it('agrupa por paciente com mês/semana e ordena as guias', () => {
+    const r = agruparAdmSemSessao([
+      { ...b, paciente: 'ANA', guia: '50145394630', mes: 9, ano: 2026, semana: 'S5' },
+      { ...b, paciente: 'ANA', guia: '50144743919', mes: 9, ano: 2026, semana: 'S3' },
+      { ...b, paciente: 'ANGELINE', guia: '50144447353', mes: 9, ano: 2026, semana: 'S2' },
+      { ...b, paciente: 'BIA', guia: '2761419', mes: 9, ano: 2026, semana: 'extra', plano: 'Select' },
+    ])
+    expect(r).toHaveLength(1)
+    expect(r[0]).toMatchObject({ psicologa: 'Psi Josane', guias: 4, spreadsheet_id: 'sj' })
+    expect(r[0].pacientes.map((p) => p.paciente)).toEqual(['ANA', 'ANGELINE', 'BIA'])
+    expect(r[0].pacientes[0].guias.map((g) => [g.guia, g.refs])).toEqual([
+      ['50144743919', ['set/26 · 3ª semana']],
+      ['50145394630', ['set/26 · 5ª semana']],
+    ])
+    expect(r[0].pacientes[2].guias[0]).toMatchObject({ plano: 'Select', refs: ['set/26 · extra'], mesRef: { mes: 9, ano: 2026 } })
+    expect('ordem' in r[0].pacientes[0].guias[0]).toBe(false)
+  })
+  it('rótulo da semana', () => {
+    expect(rotuloSemana(1, 2027, 'S1')).toBe('jan/27 · 1ª semana')
   })
 })

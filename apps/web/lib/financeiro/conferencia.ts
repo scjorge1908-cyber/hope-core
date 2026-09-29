@@ -158,6 +158,9 @@ export type GuiaNaoLancada = {
   datas: string[]
   semAnexo: number
   statusS: string[]
+  /** relatório "no ADM, sem sessão": mês/semana em que o admin lançou */
+  refs?: string[]
+  mesRef?: { mes: number; ano: number }
 }
 
 export type PacienteNaoLancado = { paciente: string; guias: GuiaNaoLancada[]; sessoes: number }
@@ -195,6 +198,85 @@ export function agruparNaoLancadas(linhas: LinhaConferencia[], incluirSemGuia = 
         .map(([paciente, gs]) => {
           const guias = [...gs.values()].map((g) => ({ ...g, datas: g.datas.sort() })).sort((a, b) => cmp(a.datas[0] ?? '', b.datas[0] ?? ''))
           return { paciente, guias, sessoes: guias.reduce((t, g) => t + Math.max(g.datas.length, 1), 0) }
+        })
+        .sort((a, b) => cmp(a.paciente, b.paciente))
+      return {
+        psicologa: p.psicologa,
+        spreadsheet_id: p.spreadsheet_id,
+        pacientes,
+        guias: pacientes.reduce((t, x) => t + x.guias.length, 0),
+        sessoes: pacientes.reduce((t, x) => t + x.sessoes, 0),
+      }
+    })
+    .sort((a, b) => b.guias - a.guias || cmp(a.psicologa, b.psicologa))
+}
+
+// ---------------- Guias no ADM sem sessão na planilha da psicóloga ----------------
+
+export type LinhaAdmSemSessao = {
+  psicologa: string
+  psicologa_adm: string
+  spreadsheet_id: string | null
+  desligada: boolean
+  paciente: string
+  plano: string | null
+  guia: string
+  mes: number
+  ano: number
+  semana: string
+  linha_bd: number
+}
+
+const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+
+/** "set/26 · 3ª semana" (ou "· extra") */
+export function rotuloSemana(mes: number, ano: number, semana: string): string {
+  const m = `${MES_CURTO[mes - 1] ?? mes}/${String(ano).slice(-2)}`
+  const n = /^S(\d)$/.exec(semana)
+  return n ? `${m} · ${n[1]}ª semana` : `${m} · extra`
+}
+
+/**
+ * Agrupa psicóloga → paciente → guia no mesmo formato do relatório
+ * (GuiaNaoLancada), com `refs` = mês/semana em que o admin lançou a guia.
+ */
+export function agruparAdmSemSessao(linhas: LinhaAdmSemSessao[]): PsicologaNaoLancada[] {
+  const cmp = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+  const psis = new Map<string, { psicologa: string; spreadsheet_id: string | null; pac: Map<string, Map<string, GuiaNaoLancada & { ordem: string }>> }>()
+  for (const l of linhas) {
+    const nome = l.psicologa || '(sem psicóloga)'
+    const p = psis.get(nome) ?? { psicologa: nome, spreadsheet_id: l.spreadsheet_id, pac: new Map() }
+    if (!p.spreadsheet_id && l.spreadsheet_id) p.spreadsheet_id = l.spreadsheet_id
+    const paciente = (l.paciente || '(sem nome)').trim()
+    const guias = p.pac.get(paciente) ?? new Map()
+    const g = guias.get(l.guia) ?? {
+      guia: l.guia,
+      plano: normalizarPlano(l.plano),
+      spreadsheet_id: l.spreadsheet_id,
+      datas: [],
+      semAnexo: 0,
+      statusS: [],
+      refs: [],
+      mesRef: { mes: l.mes, ano: l.ano },
+      ordem: `${l.ano}-${String(l.mes).padStart(2, '0')}-${l.semana}`,
+    }
+    const r = rotuloSemana(l.mes, l.ano, l.semana)
+    if (!g.refs!.includes(r)) g.refs!.push(r)
+    guias.set(l.guia, g)
+    p.pac.set(paciente, guias)
+    psis.set(nome, p)
+  }
+  return [...psis.values()]
+    .map((p) => {
+      const pacientes = [...p.pac.entries()]
+        .map(([paciente, gs]) => {
+          const guias = [...gs.values()].sort((a, b) => cmp(a.ordem, b.ordem))
+            .map((g) => {
+              const copia: GuiaNaoLancada & { ordem?: string } = { ...g }
+              delete copia.ordem
+              return copia as GuiaNaoLancada
+            })
+          return { paciente, guias, sessoes: guias.length }
         })
         .sort((a, b) => cmp(a.paciente, b.paciente))
       return {

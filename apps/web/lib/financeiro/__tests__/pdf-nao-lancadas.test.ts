@@ -27,4 +27,16 @@ describe('PDF guias não lançadas', () => {
     expect(Buffer.from(bytes.slice(0, 5)).toString()).toBe('%PDF-')
     if (process.env.PDF_OUT) writeFileSync(process.env.PDF_OUT, bytes)
   })
+  it('modo ADM (guias sem sessão na planilha)', async () => {
+    const g: PsicologaNaoLancada = {
+      psicologa: 'Psi Josane', spreadsheet_id: 'x', guias: 2, sessoes: 2,
+      pacientes: [{ paciente: 'ANA PAULA DE OLIVEIRA FERNANDES', sessoes: 2, guias: [
+        { guia: '50144743919', plano: 'Unimed', spreadsheet_id: 'x', datas: [], semAnexo: 0, statusS: [], refs: ['set/26 · 3ª semana'] },
+        { guia: '50145394630', plano: 'Unimed', spreadsheet_id: 'x', datas: [], semAnexo: 0, statusS: [], refs: ['set/26 · 5ª semana'] },
+      ] }],
+    }
+    const bytes = await gerarPdfNaoLancadas([g], { periodo: 'set/2026', geradoEm: '29/09/2026 15:00', incluirSemGuia: true, modo: 'adm' })
+    expect(Buffer.from(bytes.slice(0, 5)).toString()).toBe('%PDF-')
+    if (process.env.PDF_OUT2) writeFileSync(process.env.PDF_OUT2, bytes)
+  })
 })

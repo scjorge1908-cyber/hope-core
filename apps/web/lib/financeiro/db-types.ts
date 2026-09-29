@@ -286,6 +286,8 @@ export type FinanceDatabase = {
       legacy_planilhas_nomes: { Args: never; Returns: { spreadsheet_id: string; nome_abreviado: string | null; nome_completo: string | null; ativo: boolean; desligada: boolean; desligada_em: string | null }[] }
       // migration 015
       legacy_marcar_desligada: { Args: { p_spreadsheet_id: string; p_desligada: boolean }; Returns: undefined }
+      // migration 016 — guias no ADM sem sessão na aba Atendimentos
+      guias_adm_sem_sessao: { Args: { p_de: string; p_ate: string }; Returns: import('./conferencia').LinhaAdmSemSessao[] }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
