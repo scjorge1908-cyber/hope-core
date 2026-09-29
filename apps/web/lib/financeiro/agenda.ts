@@ -7,7 +7,20 @@ import type { CashflowCalendarRow } from './db-types'
 
 export type EstadoCelula = 'realizado' | 'previsto' | 'atrasado' | 'misto'
 
-export type Celula = { valor: number; itens: CashflowCalendarRow[]; estado: EstadoCelula }
+export type Celula = {
+  valor: number
+  itens: CashflowCalendarRow[]
+  estado: EstadoCelula
+  /** 'conciliado' = algum item confirmado pelo extrato do banco; 'sem_previsao' = entrou no banco sem nada previsto */
+  banco?: 'conciliado' | 'sem_previsao'
+}
+
+/** Como o banco participa da célula (para marcar na Agenda). */
+export function marcaBanco(itens: Pick<CashflowCalendarRow, 'origem' | 'realized_source'>[]): Celula['banco'] {
+  if (itens.some((r) => r.origem === 'banco')) return 'sem_previsao'
+  if (itens.some((r) => r.realized_source === 'banco')) return 'conciliado'
+  return undefined
+}
 
 export type LinhaAgenda = {
   categoria: string
@@ -93,6 +106,7 @@ export function montarAgenda(
     const cel = (linha.porDia[dia] ??= { valor: 0, itens: [], estado: est })
     cel.valor = cent(cel.valor + v)
     cel.itens.push(r)
+    cel.banco = marcaBanco(cel.itens)
     if (cel.estado !== est) cel.estado = 'misto'
     linha.total = cent(linha.total + v)
 

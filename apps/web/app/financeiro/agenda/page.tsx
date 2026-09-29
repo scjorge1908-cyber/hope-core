@@ -15,6 +15,7 @@ import {
 import type { CashflowCalendarRow } from '@/lib/financeiro/db-types'
 import { ImportOrizonForm } from './import-orizon-form'
 import { AutoConciliar } from '../banco/auto-conciliar'
+import { ignorar } from '../banco/actions'
 import { cancelarLancamento, desfazerRealizado, marcarRealizado, novoLancamento, salvarPrazo } from './actions'
 import s from '../financeiro.module.css'
 import a from './agenda.module.css'
@@ -118,11 +119,14 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
     return (
       <td key={dia.dia} className={classes}>
         <a
-          className={`${a.celula} ${a[c.estado]} ${selecionada ? a.selecionada : ''}`}
+          className={`${a.celula} ${a[c.estado]} ${c.banco === 'conciliado' ? a.bancoConciliado : c.banco === 'sem_previsao' ? a.bancoSemPrevisao : ''} ${selecionada ? a.selecionada : ''}`}
           href={linkSel(dia.iso, l)}
-          title={`${l.categoria} — ${dataBR(dia.iso)}: ${brl(c.valor)} (${c.itens.length} ${c.itens.length === 1 ? 'lançamento' : 'lançamentos'})`}
+          title={`${l.categoria} — ${dataBR(dia.iso)}: ${brl(c.valor)} (${c.itens.length} ${c.itens.length === 1 ? 'lançamento' : 'lançamentos'})${
+            c.banco === 'conciliado' ? ' · conciliado com o extrato do Cora' : c.banco === 'sem_previsao' ? ' · entrou no Cora sem previsão' : ''
+          }`}
         >
           {num(c.valor)}
+          {c.banco && <span className={a.marcaBanco} aria-label={c.banco === 'conciliado' ? 'conciliado com o banco' : 'recebido no banco sem previsão'} />}
         </a>
       </td>
     )
@@ -159,12 +163,14 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
     <>
       <Titulo titulo="Agenda financeira">
         O que entra e o que sai em cada dia, por plano de saúde e por despesa. Bradesco vem do relatório da Orizon (45 dias da
-        data de envio, no próximo dia útil); Unimed vem das notas fiscais; o resto é lançado aqui. Azul = previsto, verde =
+        data de envio, no próximo dia útil); Unimed vem do demonstrativo (XML), com pagamento previsto no dia 25 do mês seguinte; o resto é lançado aqui. Azul = previsto, verde =
         recebido/pago, vermelho = data passou e ainda não foi confirmado.
         <br />
         <br />
         Recebimentos que caem na conta do Cora são confirmados sozinhos ao abrir esta página (no máximo a cada 30 min). O que
-        o banco não conseguiu casar aparece em Banco (Cora) → Entradas a conferir.
+        o banco não conseguiu casar aparece em Banco (Cora) → Entradas a conferir. Na grade: faixa verde escura + ponto =
+        conciliado automaticamente com o extrato do Cora; borda tracejada = dinheiro que entrou no Cora sem nada previsto
+        (particulares, Pix etc.), na linha do plano quando o pagador indica qual é.
       </Titulo>
       <AutoConciliar />
 
@@ -272,6 +278,14 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
           <span className={a.realizado}>recebido / pago</span>
           <span className={a.atrasado}>data passou, não confirmado</span>
           <span className={a.misto}>parte confirmado</span>
+          <span className={`${a.realizado} ${a.bancoConciliado} ${a.legendaBanco}`}>
+            conciliado (Cora)
+            <span className={a.marcaBanco} />
+          </span>
+          <span className={`${a.realizado} ${a.bancoSemPrevisao} ${a.legendaBanco}`}>
+            entrou no Cora sem previsão
+            <span className={a.marcaBanco} />
+          </span>
           <span style={{ color: 'var(--fin-muted)' }}>Clique no valor para ver os lotes e confirmar o recebimento.</span>
         </div>
       </div>
@@ -294,6 +308,7 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
                       {l.kind === 'saida' ? '↓ ' : '↑ '}
                       {l.categoria}
                       {c.itens.length > 1 ? ` (${c.itens.length})` : ''}
+                      {c.banco === 'conciliado' ? ' · conciliado (Cora)' : c.banco === 'sem_previsao' ? ' · Cora, sem previsão' : ''}
                     </span>
                     <strong>{brl(c.valor)}</strong>
                   </a>
@@ -331,6 +346,8 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
                       {r.source === 'orizon' && <>Lote/guia <strong>{r.external_ref}</strong> · enviado {dataBR(r.reference_date)}</>}
                       {r.source === 'nf' && <>{r.description}</>}
                       {r.source === 'manual' && <>{r.description || 'Lançamento manual'}</>}
+                      {r.source === 'unimed_xml' && <>{r.description}</>}
+                      {r.source === 'banco' && <>{r.description}</>}
                     </span>
                     <span>
                       <strong>{brl(valorItem(r))}</strong>{' '}
@@ -341,10 +358,32 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
                             ? 'não confirmado'
                             : 'previsto'}
                       </span>
+                      {r.origem === 'banco' ? (
+                        <span className={s.badgeWarn} style={{ marginLeft: 6 }}>
+                          Cora · sem previsão
+                        </span>
+                      ) : r.realized_source === 'banco' ? (
+                        <span className={s.badgeInfo} style={{ marginLeft: 6 }} title="Confirmado automaticamente pelo extrato do Cora">
+                          conciliado (Cora)
+                        </span>
+                      ) : null}
                     </span>
                   </div>
                   <div className={a.itemAcoes}>
-                    {r.status !== 'realizado' ? (
+                    {r.origem === 'banco' ? (
+                      <>
+                        <a className={s.buttonSmall} href="/financeiro/banco#conciliacao">
+                          Vincular a um previsto
+                        </a>
+                        <form action={ignorar}>
+                          <input type="hidden" name="tx" value={r.id} />
+                          <input type="hidden" name="ignorar" value="1" />
+                          <button className={a.botaoSec} title="Ex.: transferência própria — some da Agenda">
+                            Não é recebimento da clínica
+                          </button>
+                        </form>
+                      </>
+                    ) : r.status !== 'realizado' ? (
                       <form action={marcarRealizado} className={a.itemAcoes}>
                         {hidden}
                         <label className={s.field}>

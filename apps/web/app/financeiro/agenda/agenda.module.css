@@ -363,3 +363,45 @@
     font-size: 17px;
   }
 }
+
+/* ---------- marcas do banco (Cora) ---------- */
+.celula {
+  position: relative;
+}
+
+/* conciliado automaticamente com o extrato: faixa verde escura à esquerda + ponto */
+.bancoConciliado {
+  box-shadow: inset 3px 0 0 #15803d;
+}
+
+/* entrou no banco sem nada previsto: borda tracejada */
+.bancoSemPrevisao {
+  outline: 1.5px dashed #0f766e;
+  outline-offset: -2px;
+}
+
+.marcaBanco {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #15803d;
+}
+
+.bancoSemPrevisao .marcaBanco {
+  background: #0f766e;
+}
+
+.legendaBanco {
+  position: relative;
+  padding-right: 14px !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .bancoConciliado { box-shadow: inset 3px 0 0 #5fd39a; }
+  .bancoSemPrevisao { outline-color: #5eead4; }
+  .marcaBanco { background: #5fd39a; }
+  .bancoSemPrevisao .marcaBanco { background: #5eead4; }
+}

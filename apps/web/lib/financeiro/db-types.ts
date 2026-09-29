@@ -146,12 +146,12 @@ export type CashflowItemInsert = {
 export type CashflowCalendarRow = {
   id: string
   tenant_id: string
-  origem: 'item' | 'nota_fiscal'
+  origem: 'item' | 'nota_fiscal' | 'banco'
   kind: 'entrada' | 'saida'
   insurance_plan_id: string | null
   category: string
   category_order: Num
-  source: 'orizon' | 'manual' | 'nf' | 'unimed_xml'
+  source: 'orizon' | 'manual' | 'nf' | 'unimed_xml' | 'banco'
   external_ref: string | null
   reference_date: string | null
   amount: Num
@@ -161,6 +161,8 @@ export type CashflowCalendarRow = {
   realized_date: string | null
   realized_amount: Num | null
   description: string | null
+  // migration 021: 'banco' = conciliado com o extrato do Cora (ou recebido sem previsão); 'manual' = confirmado à mão
+  realized_source?: 'manual' | 'banco' | null
 }
 
 export type OperatorInvoiceRow = {
