@@ -1,0 +1,365 @@
+/* Agenda financeira — grade do mês (desktop/tablet) e lista por dia (celular) */
+
+.mesNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.mesNav a {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--fin-border);
+  background: var(--fin-surface);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.mesNav .mesAtual {
+  background: var(--fin-accent);
+  border-color: var(--fin-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.mesNav .seta {
+  font-weight: 700;
+  padding: 6px 10px;
+}
+
+.cardsResumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.cardResumo {
+  background: var(--fin-surface);
+  border: 1px solid var(--fin-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--fin-border);
+}
+
+.cardResumo small {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fin-muted);
+  margin-bottom: 4px;
+}
+
+.cardResumo strong {
+  font-size: 20px;
+}
+
+.corReceber { border-left-color: #2563eb; }
+.corRecebido { border-left-color: #16a34a; }
+.corAtrasado { border-left-color: #dc2626; }
+.corPagar { border-left-color: #f59e0b; }
+.corSaldo { border-left-color: #7c3aed; }
+
+/* ---------- grade do mês ---------- */
+.grade {
+  background: var(--fin-surface);
+  border: 1px solid var(--fin-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.gradeScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tabela {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  min-width: 100%;
+}
+
+.tabela th,
+.tabela td {
+  border-bottom: 1px solid var(--fin-border);
+  border-right: 1px solid var(--fin-border);
+  padding: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tabela .colCat {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--fin-surface);
+  text-align: left;
+  padding: 6px 10px;
+  min-width: 110px;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+}
+
+.tabela .colTotal {
+  padding: 6px 10px;
+  font-weight: 700;
+  background: var(--fin-bg);
+  min-width: 96px;
+}
+
+.tabela thead th {
+  background: var(--fin-bg);
+  font-size: 11px;
+  color: var(--fin-muted);
+  text-align: center;
+  padding: 4px 2px;
+  min-width: 66px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tabela thead .colCat {
+  z-index: 3;
+  background: var(--fin-bg);
+}
+
+.tabela thead th b {
+  display: block;
+  font-size: 13px;
+  color: var(--fin-text);
+}
+
+.faixa td {
+  background: var(--fin-accent-soft);
+  color: var(--fin-accent);
+  font-weight: 700;
+  text-align: left;
+  padding: 5px 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.faixaSaida td {
+  background: var(--fin-warn-soft);
+  color: var(--fin-warn);
+}
+
+.fds {
+  background: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(127, 127, 127, 0.06) 4px, rgba(127, 127, 127, 0.06) 8px);
+}
+
+.hojeCol {
+  box-shadow: inset 2px 0 0 #7c3aed, inset -2px 0 0 #7c3aed;
+}
+
+.tabela thead .hojeCol {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.tabela thead .hojeCol b {
+  color: #fff;
+}
+
+.celula {
+  display: block;
+  padding: 6px 6px;
+  color: inherit;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.celula:hover {
+  outline: 2px solid var(--fin-accent);
+  outline-offset: -2px;
+}
+
+.previsto { background: #dbeafe; color: #1e40af; font-weight: 600; }
+.realizado { background: #dcfce7; color: #166534; font-weight: 600; }
+.atrasado { background: #fee2e2; color: #b91c1c; font-weight: 700; }
+.misto { background: #fef3c7; color: #92400e; font-weight: 600; }
+
+@media (prefers-color-scheme: dark) {
+  .previsto { background: #1e2f55; color: #bcd0ff; }
+  .realizado { background: #143622; color: #9be6b4; }
+  .atrasado { background: #45191a; color: #ffb4ad; }
+  .misto { background: #3a2e10; color: #f5d27a; }
+}
+
+.selecionada {
+  outline: 3px solid #7c3aed !important;
+  outline-offset: -3px;
+}
+
+.linhaTotal td {
+  font-weight: 700;
+  background: var(--fin-bg);
+  padding: 6px 6px;
+}
+
+.linhaSaldo td {
+  font-weight: 800;
+  background: var(--fin-accent-soft);
+  padding: 7px 6px;
+}
+
+.negativo {
+  color: var(--fin-bad) !important;
+}
+
+.legenda {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  font-size: 12px;
+  border-top: 1px solid var(--fin-border);
+}
+
+.legenda span {
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* ---------- lista por dia (celular) ---------- */
+.listaDias {
+  display: none;
+  margin-bottom: 20px;
+}
+
+.diaCard {
+  background: var(--fin-surface);
+  border: 1px solid var(--fin-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.diaCard header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.diaCard header span {
+  font-size: 12px;
+  color: var(--fin-muted);
+  font-weight: 500;
+}
+
+.diaHoje {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px #7c3aed33;
+}
+
+.diaLinha {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------- detalhe / formulários ---------- */
+.detalhe {
+  scroll-margin-top: 16px;
+}
+
+.itens {
+  display: grid;
+  gap: 10px;
+}
+
+.item {
+  border: 1px solid var(--fin-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.itemTopo {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.itemAcoes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.itemAcoes input {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--fin-border);
+  border-radius: 6px;
+  background: var(--fin-bg);
+  color: var(--fin-text);
+  width: 130px;
+}
+
+.botaoSec {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--fin-border);
+  background: var(--fin-surface);
+  color: var(--fin-text);
+  cursor: pointer;
+}
+
+.duasColunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.proximos {
+  display: grid;
+  gap: 6px;
+}
+
+.proximoDia {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--fin-bg);
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .grade {
+    display: none;
+  }
+  .listaDias {
+    display: block;
+  }
+  .cardResumo strong {
+    font-size: 17px;
+  }
+}

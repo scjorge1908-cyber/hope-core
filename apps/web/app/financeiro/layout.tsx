@@ -14,6 +14,7 @@ export default async function FinanceiroLayout({ children }: LayoutProps<'/finan
         {allowed && (
           <nav className={s.nav}>
             <Link href="/financeiro">Painel</Link>
+            <Link href="/financeiro/agenda">Agenda</Link>
             <Link href="/financeiro/importar">Importar XML</Link>
             <Link href="/financeiro/notas">Notas fiscais</Link>
             <Link href="/financeiro/repasse">Repasse (RPA)</Link>

@@ -41,7 +41,11 @@ export default async function PainelFinanceiro({ searchParams }: PageProps<'/fin
   }
 
   const { plano } = await searchParams
-  const plan = plans.find((p) => p.id === plano) ?? plans[0]
+  // Sem plano escolhido: abre no primeiro plano que já tem demonstrativo importado
+  // (planos novos, como Bradesco via Orizon, ainda não têm XML TISS).
+  const { data: comDemonstrativo } = await supabase.from('claim_statement_overview').select('insurance_plan_id').limit(1000)
+  const planosComXml = new Set((comDemonstrativo ?? []).map((x) => x.insurance_plan_id))
+  const plan = plans.find((p) => p.id === plano) ?? plans.find((p) => planosComXml.has(p.id)) ?? plans[0]
 
   const [statementsRes, monthlyRes, codesRes, glossRes, dupRes] = await Promise.all([
     supabase.from('claim_statement_overview').select('*').eq('insurance_plan_id', plan.id).order('emission_date', { ascending: false }),

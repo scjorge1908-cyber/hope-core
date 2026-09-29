@@ -95,6 +95,72 @@ export type InsurancePlanRow = {
   name: string
   operator_ans_code: string | null
   active: boolean
+  // migration 011 — agenda de recebimentos
+  short_name?: string | null
+  payment_days?: Num | null
+  payment_base?: 'envio' | 'liberacao' | 'nf' | null
+  payment_business_day?: boolean
+  display_order?: Num | null
+}
+
+// migration 011 — agenda de recebimentos e pagamentos
+export type CashflowItemRow = {
+  id: string
+  tenant_id: string
+  kind: 'entrada' | 'saida'
+  insurance_plan_id: string | null
+  category: string
+  source: 'orizon' | 'manual'
+  external_ref: string | null
+  protocol: string | null
+  guide_type: string | null
+  guide_count: Num | null
+  reference_date: string | null
+  released_at: string | null
+  origin_status: string | null
+  amount: Num
+  expected_date: string
+  status: 'previsto' | 'realizado' | 'glosado' | 'cancelado'
+  realized_date: string | null
+  realized_amount: Num | null
+  realized_source: 'manual' | 'banco' | null
+  description: string | null
+  import_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CashflowItemInsert = {
+  tenant_id: string
+  kind: 'entrada' | 'saida'
+  insurance_plan_id?: string | null
+  category: string
+  source: 'manual'
+  amount: number
+  expected_date: string
+  description?: string | null
+  created_by?: string | null
+}
+
+export type CashflowCalendarRow = {
+  id: string
+  tenant_id: string
+  origem: 'item' | 'nota_fiscal'
+  kind: 'entrada' | 'saida'
+  insurance_plan_id: string | null
+  category: string
+  category_order: Num
+  source: 'orizon' | 'manual' | 'nf'
+  external_ref: string | null
+  reference_date: string | null
+  amount: Num
+  expected_date: string
+  calendar_date: string
+  status: 'previsto' | 'realizado' | 'glosado'
+  realized_date: string | null
+  realized_amount: Num | null
+  description: string | null
 }
 
 export type OperatorInvoiceRow = {
@@ -166,7 +232,19 @@ export type FinanceDatabase = {
   __InternalSupabase: { PostgrestVersion: '14.5' }
   public: {
     Tables: {
-      insurance_plans: { Row: InsurancePlanRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
+      insurance_plans: {
+        Row: InsurancePlanRow
+        Insert: NoInsert
+        Update: Partial<Pick<InsurancePlanRow, 'payment_days' | 'payment_base' | 'payment_business_day'>>
+        Relationships: []
+      }
+      bank_holidays: { Row: { day: string; name: string }; Insert: NoInsert; Update: NoInsert; Relationships: [] }
+      cashflow_items: {
+        Row: CashflowItemRow
+        Insert: CashflowItemInsert
+        Update: Partial<Pick<CashflowItemRow, 'status' | 'realized_date' | 'realized_amount' | 'realized_source' | 'amount' | 'expected_date' | 'description'>>
+        Relationships: []
+      }
       operator_invoices: {
         Row: OperatorInvoiceRow
         Insert: OperatorInvoiceInsert
@@ -184,6 +262,7 @@ export type FinanceDatabase = {
       claim_statement_overview: { Row: ClaimStatementOverviewRow; Relationships: [] }
       claim_monthly_summary: { Row: ClaimMonthlySummaryRow; Relationships: [] }
       claim_gloss_by_code: { Row: ClaimGlossByCodeRow; Relationships: [] }
+      cashflow_calendar: { Row: CashflowCalendarRow; Relationships: [] }
     }
     Functions: {
       has_finance_access: { Args: never; Returns: boolean }
@@ -197,6 +276,8 @@ export type FinanceDatabase = {
       legacy_registro_espelhar: { Args: { p: Json }; Returns: Json }
       claim_status_por_guias: { Args: { p_guias: string[] }; Returns: ClaimStatusPorGuiaRow[] }
       guia_divergencias: { Args: never; Returns: GuiaDivergenciaRow[] }
+      // migration 011 — agenda de recebimentos
+      import_orizon_lotes: { Args: { p: Json }; Returns: Json }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
