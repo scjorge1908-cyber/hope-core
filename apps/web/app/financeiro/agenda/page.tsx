@@ -342,7 +342,7 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
               key={valor}
               href={linkFiltro({ fe: fe === valor ? null : valor })}
               className={`${cls} ${a.filtroBotao} ${fe === valor ? a.filtroAtivo : ''} ${fe && fe !== valor ? a.filtroApagado : ''}`}
-              aria-pressed={fe === valor}
+              aria-current={fe === valor ? "true" : undefined}
               title={fe === valor ? 'Tirar este filtro' : `Mostrar só: ${rotulo}`}
             >
               {rotulo}
