@@ -16,6 +16,7 @@ import type { CashflowCalendarRow } from '@/lib/financeiro/db-types'
 import { ImportOrizonForm } from './import-orizon-form'
 import { AutoConciliar } from '../banco/auto-conciliar'
 import { ignorar } from '../banco/actions'
+import { RolarParaHoje } from './rolar-hoje'
 import { cancelarLancamento, desfazerRealizado, marcarRealizado, novoLancamento, salvarPrazo } from './actions'
 import s from '../financeiro.module.css'
 import a from './agenda.module.css'
@@ -44,6 +45,11 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
   const mes = m ? Math.min(Math.max(Number(m[2]), 1), 12) : Number(hoje.slice(5, 7))
   const mesStr = chaveMes(ano, mes)
   const sel = String(sp.sel ?? '')
+  // filtros da grade: fe = estado (legenda), fp = plano/categoria (nome da linha)
+  const FILTROS_ESTADO = ['previsto', 'realizado', 'atrasado', 'misto', 'conciliado', 'sem_previsao'] as const
+  type FiltroEstado = (typeof FILTROS_ESTADO)[number]
+  const fe = (FILTROS_ESTADO as readonly string[]).includes(String(sp.fe)) ? (String(sp.fe) as FiltroEstado) : null
+  const fp = typeof sp.fp === 'string' && sp.fp ? sp.fp : null
   const ok = typeof sp.ok === 'string' ? sp.ok : ''
   const erro = typeof sp.erro === 'string' ? sp.erro : ''
   const { inicio, fim } = intervaloMes(ano, mes)
@@ -76,14 +82,50 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
   const categoriasSaida = [...new Set((saidasRes.data ?? []).map((x) => x.category))].sort((x, y) => x.localeCompare(y, 'pt-BR'))
   const feriados = feriadosRes.data ?? []
 
-  const agenda = montarAgenda(rows, {
+  const passaFiltro = (r: CashflowCalendarRow) => {
+    if (fp && r.category !== fp) return false
+    if (!fe || fe === 'misto') return true
+    if (fe === 'conciliado') return r.realized_source === 'banco' && r.origem !== 'banco'
+    if (fe === 'sem_previsao') return r.origem === 'banco'
+    return estadoItem(r, hoje) === fe
+  }
+  const filtrando = Boolean(fe || fp)
+  const planosAgenda = planos
+    .map((p, i) => ({ nome: p.short_name || p.name, ordem: Number(p.display_order ?? 50 + i) }))
+    .filter((p) => !fp || p.nome === fp)
+  const agenda = montarAgenda(rows.filter(passaFiltro), {
     ano,
     mes,
     hojeIso: hoje,
-    planos: planos.map((p, i) => ({ nome: p.short_name || p.name, ordem: Number(p.display_order ?? 50 + i) })),
-    categoriasSaida,
+    planos: filtrando ? [] : planosAgenda,
+    categoriasSaida: filtrando ? [] : categoriasSaida,
     feriados: feriados.map((f) => f.day),
   })
+  if (fe === 'misto') {
+    // "parte confirmado" é estado da célula: fica só a célula mista
+    for (const l of [...agenda.entradas, ...agenda.saidas]) {
+      for (const d of Object.keys(l.porDia)) if (l.porDia[Number(d)].estado !== 'misto') delete l.porDia[Number(d)]
+      l.total = Math.round(Object.values(l.porDia).reduce((t, c) => t + c.valor, 0) * 100) / 100
+    }
+    agenda.entradas = agenda.entradas.filter((l) => Object.keys(l.porDia).length)
+    agenda.saidas = agenda.saidas.filter((l) => Object.keys(l.porDia).length)
+    for (const [lista, alvo] of [
+      [agenda.entradas, agenda.entradaDia],
+      [agenda.saidas, agenda.saidaDia],
+    ] as const) {
+      for (const k of Object.keys(alvo)) delete alvo[Number(k)]
+      for (const l of lista) for (const [d, c] of Object.entries(l.porDia)) alvo[Number(d)] = Math.round(((alvo[Number(d)] ?? 0) + c.valor) * 100) / 100
+    }
+  }
+  // links dos filtros (mantém o mês; clicar de novo no mesmo filtro tira o filtro)
+  const linkFiltro = (novo: { fe?: string | null; fp?: string | null }) => {
+    const q = new URLSearchParams({ mes: mesStr })
+    const e = novo.fe !== undefined ? novo.fe : fe
+    const pl = novo.fp !== undefined ? novo.fp : fp
+    if (e) q.set('fe', e)
+    if (pl) q.set('fp', pl)
+    return `/financeiro/agenda?${q}`
+  }
 
   // célula selecionada: "YYYY-MM-DD|entrada|Bradesco"
   const [selDia, selKind, ...selCat] = sel.split('|')
@@ -135,21 +177,29 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
   const linhasTabela = (ls: LinhaAgenda[]) =>
     ls.map((l) => (
       <tr key={`${l.kind}-${l.categoria}`}>
-        <td className={a.colCat}>{l.categoria}</td>
-        {agenda.dias.map((d) => celula(l, l.porDia[d.dia], d))}
+        <td className={a.colCat}>
+          <a
+            className={`${a.nomeFiltro} ${fp === l.categoria ? a.nomeFiltroAtivo : ''}`}
+            href={linkFiltro({ fp: fp === l.categoria ? null : l.categoria })}
+            title={fp === l.categoria ? 'Mostrar todos' : `Mostrar só ${l.categoria}`}
+          >
+            {l.categoria}
+          </a>
+        </td>
         <td className={a.colTotal}>{l.total ? num(l.total) : ''}</td>
+        {agenda.dias.map((d) => celula(l, l.porDia[d.dia], d))}
       </tr>
     ))
 
   const totalLinha = (rotulo: string, porDia: Record<number, number>, total: number) => (
     <tr className={a.linhaTotal}>
       <td className={a.colCat}>{rotulo}</td>
+      <td className={a.colTotal}>{num(total)}</td>
       {agenda.dias.map((d) => (
         <td key={d.dia} className={d.hoje ? a.hojeCol : ''}>
           {porDia[d.dia] ? num(porDia[d.dia]) : ''}
         </td>
       ))}
-      <td className={a.colTotal}>{num(total)}</td>
     </tr>
   )
 
@@ -222,20 +272,22 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
 
       {/* ---------- grade do mês (computador / tablet) ---------- */}
       <div className={a.grade}>
-        <div className={a.gradeScroll}>
+        <div className={a.gradeScroll} id="agenda-grade">
           <table className={a.tabela}>
             <thead>
               <tr>
-                <th className={a.colCat}>
+                <th className={a.colCat} data-fixa="1">
                   {MESES_PT[mes - 1]} {ano}
                 </th>
+                <th className={a.colTotal} data-fixa="1">
+                  Total
+                </th>
                 {agenda.dias.map((d) => (
-                  <th key={d.dia} className={`${d.fimDeSemana ? a.fds : ''} ${d.hoje ? a.hojeCol : ''}`}>
+                  <th key={d.dia} className={`${d.fimDeSemana ? a.fds : ''} ${d.hoje ? a.hojeCol : ''}`} data-hoje={d.hoje ? '1' : undefined}>
                     {DIAS_SEMANA_CURTO[d.semana]}
                     <b>{d.dia}</b>
                   </th>
                 ))}
-                <th className={a.colTotal}>Total</th>
               </tr>
             </thead>
             <tbody>
@@ -252,14 +304,16 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
               ) : (
                 <tr>
                   <td className={a.colCat} style={{ fontWeight: 400, color: 'var(--fin-muted)' }}>
-                    Nenhuma despesa lançada
+                    {filtrando ? 'Nada neste filtro' : 'Nenhuma despesa lançada'}
                   </td>
-                  <td colSpan={agenda.dias.length + 1} />
+                  <td className={a.colTotal} />
+                  <td colSpan={agenda.dias.length} />
                 </tr>
               )}
               {totalLinha('Total a pagar', agenda.saidaDia, totalSaidas)}
               <tr className={a.linhaSaldo}>
                 <td className={a.colCat}>Saldo do dia</td>
+                <td className={`${a.colTotal} ${totalEntradas - totalSaidas < 0 ? a.negativo : ''}`}>{num(totalEntradas - totalSaidas)}</td>
                 {agenda.dias.map((d) => {
                   const v = (agenda.entradaDia[d.dia] ?? 0) - (agenda.saidaDia[d.dia] ?? 0)
                   return (
@@ -268,25 +322,43 @@ export default async function AgendaPage({ searchParams }: PageProps<'/financeir
                     </td>
                   )
                 })}
-                <td className={`${a.colTotal} ${totalEntradas - totalSaidas < 0 ? a.negativo : ''}`}>{num(totalEntradas - totalSaidas)}</td>
               </tr>
             </tbody>
           </table>
         </div>
+        <RolarParaHoje alvo="agenda-grade" />
         <div className={a.legenda}>
-          <span className={a.previsto}>previsto</span>
-          <span className={a.realizado}>recebido / pago</span>
-          <span className={a.atrasado}>data passou, não confirmado</span>
-          <span className={a.misto}>parte confirmado</span>
-          <span className={`${a.realizado} ${a.bancoConciliado} ${a.legendaBanco}`}>
-            conciliado (Cora)
-            <span className={a.marcaBanco} />
+          {(
+            [
+              ['previsto', 'previsto', a.previsto],
+              ['realizado', 'recebido / pago', a.realizado],
+              ['atrasado', 'data passou, não confirmado', a.atrasado],
+              ['misto', 'parte confirmado', a.misto],
+              ['conciliado', 'conciliado (Cora)', `${a.realizado} ${a.bancoConciliado} ${a.legendaBanco}`],
+              ['sem_previsao', 'entrou no Cora sem previsão', `${a.realizado} ${a.bancoSemPrevisao} ${a.legendaBanco}`],
+            ] as const
+          ).map(([valor, rotulo, cls]) => (
+            <a
+              key={valor}
+              href={linkFiltro({ fe: fe === valor ? null : valor })}
+              className={`${cls} ${a.filtroBotao} ${fe === valor ? a.filtroAtivo : ''} ${fe && fe !== valor ? a.filtroApagado : ''}`}
+              aria-pressed={fe === valor}
+              title={fe === valor ? 'Tirar este filtro' : `Mostrar só: ${rotulo}`}
+            >
+              {rotulo}
+              {(valor === 'conciliado' || valor === 'sem_previsao') && <span className={a.marcaBanco} />}
+            </a>
+          ))}
+          {filtrando && (
+            <a href={linkFiltro({ fe: null, fp: null })} className={a.limparFiltro}>
+              ✕ Limpar filtro
+            </a>
+          )}
+          <span style={{ color: 'var(--fin-muted)' }}>
+            {filtrando
+              ? `Filtro: ${[fp, fe ? { previsto: 'previsto', realizado: 'recebido / pago', atrasado: 'data passou', misto: 'parte confirmado', conciliado: 'conciliado (Cora)', sem_previsao: 'sem previsão' }[fe] : null].filter(Boolean).join(' · ')}`
+              : 'Clique numa cor ou no nome do plano para filtrar; no valor para ver os lotes e confirmar.'}
           </span>
-          <span className={`${a.realizado} ${a.bancoSemPrevisao} ${a.legendaBanco}`}>
-            entrou no Cora sem previsão
-            <span className={a.marcaBanco} />
-          </span>
-          <span style={{ color: 'var(--fin-muted)' }}>Clique no valor para ver os lotes e confirmar o recebimento.</span>
         </div>
       </div>
 
