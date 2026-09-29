@@ -84,6 +84,7 @@ export const EXTENSAO_SCRIPT = String.raw`<style>
   var HOPE_UNIMED = {};
   var HOPE_CONSULTADAS = {};
   var HOPE_DESTACAR = '';
+  var HOPE_ABRIR_JANELA = false;
   var timer = null;
 
   function fmt(v) { return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ','); }
@@ -138,7 +139,15 @@ export const EXTENSAO_SCRIPT = String.raw`<style>
       if (dv) cont.classList.add('hope-diverg');
       if (HOPE_DESTACAR && val === HOPE_DESTACAR) { cont.classList.add('hope-destaque'); destacado = destacado || input; }
     });
-    if (destacado) { destacado.scrollIntoView({ block: 'center', behavior: 'smooth' }); HOPE_DESTACAR = ''; }
+    if (destacado) {
+      destacado.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      HOPE_DESTACAR = '';
+      // vindo da página Divergências: já abre a janela da guia (mesmo efeito do duplo clique)
+      if (HOPE_ABRIR_JANELA) {
+        HOPE_ABRIR_JANELA = false;
+        destacado.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+      }
+    }
   }
 
   function atualizar() {
@@ -195,6 +204,24 @@ export const EXTENSAO_SCRIPT = String.raw`<style>
     }).hopeUnimedStatus([guia]);
   }
 
+  // Buscar com 1 clique: se a lista de pacientes ainda está carregando
+  // (depois de trocar psicóloga/mês), espera ela chegar e busca sozinho —
+  // antes a 1ª busca ia com "Carregando..." como paciente e voltava vazia.
+  var buscarOriginal = window.buscarDados;
+  function pacientesCarregando() {
+    var sel = document.getElementById('selectPaciente');
+    return !!sel && sel.options.length === 1 && /Carregando/i.test(sel.options[0].text);
+  }
+  buscarDados = function () {
+    if (!pacientesCarregando()) return buscarOriginal();
+    var btn = document.getElementById('btnBuscar');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Carregando pacientes...'; }
+    esperar(function () { return !pacientesCarregando(); }, function () {
+      if (btn) btn.disabled = false;
+      buscarOriginal();
+    });
+  };
+
   var detalhesOriginal = window.renderizarDetalhesModal;
   renderizarDetalhesModal = function (detalhes) {
     detalhesOriginal(detalhes);
@@ -231,26 +258,37 @@ export const EXTENSAO_SCRIPT = String.raw`<style>
   // --- abrir direto: ?planilha=ID&mes=9&ano=2026&guia=123 ---
   function esperar(cond, fazer, tentativas) {
     if (cond()) { fazer(); return; }
-    if ((tentativas || 0) > 150) return;
+    if ((tentativas || 0) > 300) { fazer(); return; } // 60 s: segue mesmo assim
     setTimeout(function () { esperar(cond, fazer, (tentativas || 0) + 1); }, 200);
   }
   var q = new URLSearchParams(location.search);
   var planilha = q.get('planilha');
   if (planilha) {
     HOPE_DESTACAR = q.get('guia') || '';
+    HOPE_ABRIR_JANELA = !!HOPE_DESTACAR;
     var selPsi = document.getElementById('selectPsicologa');
-    esperar(function () { return selPsi.options.length > 1; }, function () {
-      google.script.run.withSuccessHandler(function (mapa) {
-        var alvo = (mapa || []).filter(function (m) { return m.id === planilha; })[0];
-        var existe = alvo && Array.prototype.some.call(selPsi.options, function (o) { return o.value === alvo.nome; });
-        if (!existe) { mostrarMensagem('Psicóloga desta guia não está na aba ID do Registro de Guia.', 'warning'); return; }
-        selPsi.value = alvo.nome;
-        if (q.get('mes')) document.getElementById('selectMes').value = String(Number(q.get('mes')));
-        if (q.get('ano')) document.getElementById('selectAno').value = q.get('ano');
-        atualizarListaPacientes();
-        var selPac = document.getElementById('selectPaciente');
-        esperar(function () { return selPac.options.length > 0 && selPac.options[0].value === 'todos'; }, function () { buscarDados(); });
-      }).hopeMapaPsicologas();
+    var mapaPsi = null;
+    // busca o mapa nome→planilha JÁ (em paralelo com a lista de psicólogas)
+    google.script.run
+      .withSuccessHandler(function (m) { mapaPsi = m || []; })
+      .withFailureHandler(function (e) { mapaPsi = []; mostrarMensagem('❌ ' + e, 'error'); })
+      .hopeMapaPsicologas();
+    mostrarMensagem('Abrindo a guia ' + (HOPE_DESTACAR || '') + ' — ' + (q.get('mes') || '') + '/' + (q.get('ano') || '') + '...', 'info');
+    esperar(function () { return selPsi.options.length > 1 && mapaPsi !== null; }, function () {
+      var alvo = (mapaPsi || []).filter(function (m) { return m.id === planilha; })[0];
+      var existe = alvo && Array.prototype.some.call(selPsi.options, function (o) { return o.value === alvo.nome; });
+      if (!existe) {
+        mostrarMensagem('Esta psicóloga não está na aba ID do Registro de Guia. Corrija direto na planilha dela (link na página Divergências).', 'warning');
+        return;
+      }
+      selPsi.value = alvo.nome;
+      if (q.get('mes')) document.getElementById('selectMes').value = String(Number(q.get('mes')));
+      if (q.get('ano')) document.getElementById('selectAno').value = q.get('ano');
+      // carrega a lista de pacientes para o filtro, mas já busca "Todos" sem esperar por ela
+      atualizarListaPacientes();
+      var selPac = document.getElementById('selectPaciente');
+      selPac.innerHTML = '<option value="todos">Todos</option>';
+      buscarOriginal();
     });
   }
 })();

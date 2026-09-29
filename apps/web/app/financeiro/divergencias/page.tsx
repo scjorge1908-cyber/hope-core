@@ -1,7 +1,11 @@
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { brl, int } from '@/lib/financeiro/format'
 import type { GuiaDivergenciaRow } from '@/lib/financeiro/db-types'
+import { chamarPonte } from '@/lib/registro-guias/ponte'
 import s from '../financeiro.module.css'
+
+// consulta a aba ID do Registro de Guia (Apps Script) para saber quem está lá
+export const maxDuration = 30
 
 const TIPOS: Record<GuiaDivergenciaRow['tipo'], { titulo: string; nota: string; cls: string }> = {
   ok_glosado: {
@@ -30,11 +34,29 @@ function linkRegistro(d: GuiaDivergenciaRow) {
   return `/financeiro/guias?${q.toString()}`
 }
 
+function linkPlanilha(d: GuiaDivergenciaRow) {
+  return `https://docs.google.com/spreadsheets/d/${d.spreadsheet_id}/edit`
+}
+
+/** IDs das planilhas que estão na aba ID do ADM Registro de Guia (null = não deu para consultar). */
+async function planilhasNoRegistro(): Promise<Set<string> | null> {
+  try {
+    const r = await Promise.race([
+      chamarPonte('hopeMapaPsicologas', []),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('tempo')), 12_000)),
+    ])
+    const lista = Array.isArray(r.resultado) ? (r.resultado as { id?: string }[]) : []
+    return new Set(lista.map((m) => String(m.id ?? '')))
+  } catch {
+    return null
+  }
+}
+
 export default async function DivergenciasPage() {
   const { supabase, allowed } = await requireFinanceAccess()
   if (!allowed) return null
 
-  const { data, error } = await supabase.rpc('guia_divergencias')
+  const [{ data, error }, noRegistro] = await Promise.all([supabase.rpc('guia_divergencias'), planilhasNoRegistro()])
   const linhas = (data ?? []) as GuiaDivergenciaRow[]
 
   return (
@@ -43,7 +65,9 @@ export default async function DivergenciasPage() {
       <p className={s.lead}>
         Cruza o número da guia da aba Atendimentos de cada psicóloga (coluna E) e o status da coluna S com os
         demonstrativos da Unimed já importados. Só aparecem guias que estão nos XMLs. Clique em “Abrir” para ir
-        direto à guia no Registro de Guias e corrigir (grava na planilha e no banco).
+        direto à guia no Registro de Guias (abre em outra aba, já filtrada e com a janela da guia aberta) e corrigir
+        — grava na planilha e no banco. Psicólogas que não estão na aba ID do Registro de Guia só têm o link da
+        planilha dela.
       </p>
 
       {error && <div className={s.alertBad}>Erro: {error.message}</div>}
@@ -101,9 +125,18 @@ export default async function DivergenciasPage() {
                       <td className={s.num}>{brl(d.glosado)}</td>
                       <td>{d.codigos_glosa ?? '—'}</td>
                       <td>{d.demonstrativos ?? '—'}</td>
-                      <td>
-                        <a className={s.buttonSmall} href={linkRegistro(d)}>
-                          Abrir
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {noRegistro === null || noRegistro.has(d.spreadsheet_id) ? (
+                          <a className={s.buttonSmall} href={linkRegistro(d)} target="_blank" rel="noopener">
+                            Abrir
+                          </a>
+                        ) : (
+                          <span className={s.muted} style={{ fontSize: 12, marginRight: 6 }}>
+                            fora do Registro
+                          </span>
+                        )}{' '}
+                        <a className={s.buttonSmall} href={linkPlanilha(d)} target="_blank" rel="noopener" title="Abrir a planilha da psicóloga (aba Atendimentos, coluna S)">
+                          Planilha
                         </a>
                       </td>
                     </tr>
