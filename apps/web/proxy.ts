@@ -35,14 +35,15 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = url.pathname.startsWith('/login')
   const isDashboardRoute = url.pathname.startsWith('/dashboard')
   const isFinanceiroRoute = url.pathname.startsWith('/financeiro')
+  const isBiRoute = url.pathname === '/bi' || url.pathname.startsWith('/bi/')
 
-  if ((isDashboardRoute || isFinanceiroRoute) && !user) {
+  if ((isDashboardRoute || isFinanceiroRoute || isBiRoute) && !user) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
   if (isAuthRoute && user) {
-    url.pathname = '/dashboard'
+    url.pathname = '/bi'
     return NextResponse.redirect(url)
   }
 

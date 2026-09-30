@@ -201,7 +201,7 @@
 /* ---------------- KPIs ---------------- */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -211,7 +211,8 @@
   background: var(--fin-surface);
   border: 1px solid var(--fin-border);
   border-radius: var(--fin-radius);
-  padding: 18px 20px 16px;
+  padding: 16px 18px 14px;
+  min-width: 0;
   box-shadow: var(--fin-shadow);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
@@ -268,10 +269,12 @@
   letter-spacing: 0.05em;
   margin-bottom: 10px;
   padding-right: 40px;
+  min-height: 30px; /* o valor começa abaixo do ícone do canto e nunca passa por cima dele */
 }
 
 .cardValue {
-  font-size: 26px;
+  font-size: clamp(20px, 1.6vw + 8px, 26px);
+  overflow-wrap: anywhere;
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
