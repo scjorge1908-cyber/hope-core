@@ -353,6 +353,10 @@ export type FinanceDatabase = {
       dre_classificar: { Args: { p_chave: string; p_tipo: string; p_categoria: string }; Returns: undefined }
       // migration 023 — base da projeção (Monte Carlo em lib/financeiro/projecao.ts)
       projecao_base: { Args: never; Returns: Json }
+      // migration 024 — BI da clínica (Agenda, Cancelados, Salas)
+      bi_base: { Args: never; Returns: Json }
+      // migration 025 — Gerar guias (previstas × geradas)
+      bi_gerar_guias_base: { Args: never; Returns: Json }
       // migration 018 — demonstrativo (XML) da Unimed vira previsto na Agenda
       previstos_demonstrativos_sync: { Args: never; Returns: number }
       // migration 017 — banco

@@ -1,0 +1,253 @@
+/* =====================================================================
+   HOPE CORE · casca com menu lateral (layout do Sistema Gerencial e BI)
+   Usa os tokens --fin-* definidos em .shell (financeiro.module.css).
+   ===================================================================== */
+.corpo {
+  display: flex;
+  min-height: 100vh;
+}
+
+.coluna {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 24px 10px 24px;
+  background: color-mix(in srgb, var(--fin-surface) 92%, transparent);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-bottom: 1px solid var(--fin-border);
+}
+
+.topoTitulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fin-muted);
+}
+
+.topoUsuario {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--fin-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45vw;
+}
+
+/* ---------- menu lateral ---------- */
+.lateral,
+.lateralAberta {
+  width: 244px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--fin-surface);
+  border-right: 1px solid var(--fin-border);
+  padding: 18px 12px 14px;
+  z-index: 40;
+  scrollbar-width: thin;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 18px;
+  color: var(--fin-text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.marca small {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fin-muted);
+}
+
+.marcaLogo {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--fin-accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grupoTitulo {
+  padding: 0 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fin-muted);
+}
+
+.item,
+.itemAtivo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--fin-muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.item:hover {
+  background: var(--fin-surface-2);
+  color: var(--fin-text);
+}
+
+.itemAtivo {
+  background: var(--fin-accent-soft);
+  color: var(--fin-accent);
+  font-weight: 600;
+}
+
+.item:focus-visible,
+.itemAtivo:focus-visible,
+.marca:focus-visible,
+.hamburguer:focus-visible {
+  outline: 2px solid var(--fin-accent);
+  outline-offset: 2px;
+}
+
+.icone {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.rotulo {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.usuario {
+  margin-top: 16px;
+  padding: 10px 12px 0;
+  border-top: 1px solid var(--fin-border);
+  font-size: 12px;
+  color: var(--fin-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- botão do menu (celular) ---------- */
+.hamburguer {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 50;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--fin-border);
+  border-radius: 8px;
+  background: var(--fin-surface);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburguerIcone,
+.hamburguerIcone::before,
+.hamburguerIcone::after {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--fin-text);
+  position: relative;
+}
+
+.hamburguerIcone::before,
+.hamburguerIcone::after {
+  content: '';
+  position: absolute;
+  left: 0;
+}
+
+.hamburguerIcone::before {
+  top: -6px;
+}
+
+.hamburguerIcone::after {
+  top: 6px;
+}
+
+.fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgb(0 0 0 / 0.35);
+}
+
+@media (max-width: 900px) {
+  .hamburguer {
+    display: flex;
+  }
+
+  .lateral {
+    display: none;
+  }
+
+  .lateralAberta {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    box-shadow: var(--fin-shadow-md);
+  }
+
+  .topo {
+    padding-left: 64px;
+  }
+}
+
+@media (max-width: 520px) {
+  .topoUsuario {
+    display: none;
+  }
+}

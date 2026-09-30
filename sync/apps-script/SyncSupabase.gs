@@ -53,6 +53,12 @@ function sincronizarPlanilhasSupabase() {
       } catch (e) {
         resumo.push(`❌ ExencaoCNPJ/aba ID: ${e.message}`);
       }
+      try {
+        const s = syncEnviarSalas_(cfg);
+        if (s !== null) resumo.push(`✅ Salas (Painel): ${s} linhas`);
+      } catch (e) {
+        resumo.push(`❌ Salas (Painel): ${e.message}`);
+      }
     }
     for (let i = cursor; i < lista.length; i++) {
       if (Date.now() - inicio > SYNC_LIMITE_MS) {
@@ -192,7 +198,98 @@ function syncEnviarPsicologa_(cfg, psi) {
   if (resp.getResponseCode() !== 200) {
     throw new Error(`Supabase respondeu ${resp.getResponseCode()}: ${resp.getContentText().slice(0, 300)}`);
   }
+
+  // BI (migration 024): Agenda + Cancelados, só os campos dos indicadores.
+  // Uma falha aqui não desfaz o envio dos Atendimentos — só fica no log.
+  try {
+    const r = syncEnviarAgendaCancelados_(cfg, psi, ss);
+    console.log(`   ↳ ${psi.nomeAbreviado}: Agenda ${r.agenda} | Cancelados ${r.cancelados}`);
+  } catch (e) {
+    console.log(`   ↳ ${psi.nomeAbreviado}: Agenda/Cancelados não enviados — ${e.message}`);
+  }
   return linhas.length;
+}
+
+// =======================================================
+// BI — Agenda, Cancelados e Salas (migration 024)
+// Só os campos que os indicadores usam. NÃO envia: CPF, telefone,
+// e-mail, carteirinha, médico, CRM, CID, responsável, anexos, sexo
+// nem observações.
+//   Agenda (coluna):     A dia | B horário | C paciente | E plano |
+//                        F psicóloga | H valor | I sala | M nascimento |
+//                        O cidade | P bairro | AA data de início
+//   Cancelados (coluna): A cancelamento | B dia | C horário | D paciente |
+//                        F plano | I valor | J sala | N nascimento |
+//                        P cidade | Q bairro | AB data de início
+// Salas: aba "Painel" da planilha de Salas, cujo ID fica na
+// propriedade do script SALAS_SPREADSHEET_ID (opcional).
+// =======================================================
+
+const SYNC_COLS_AGENDA = [0, 1, 2, 4, 5, 7, 8, 12, 14, 15, 26];
+const SYNC_COLS_CANCELADOS = [0, 1, 2, 3, 5, 8, 9, 13, 15, 16, 27];
+
+function syncEnviarAgendaCancelados_(cfg, psi, ss) {
+  const planilha = ss || SpreadsheetApp.openById(psi.id);
+  const ler = (nome, cols, ehAgenda) => {
+    const aba = planilha.getSheetByName(nome);
+    if (!aba) return null;
+    const valores = aba.getDataRange().getValues();
+    const out = [];
+    for (let i = 1; i < valores.length; i++) {
+      const r = valores[i];
+      const c = cols.map(k => syncNormalizarCelula_(k < r.length ? r[k] : ''));
+      const vazia = c.every(x => x === '' || x === null || (typeof x === 'string' && x.trim() === ''));
+      if (vazia) continue;
+      if (ehAgenda && !r[0] && !r[1]) continue; // sem dia nem horário: não é horário da grade
+      out.push({ linha: i + 1, c: c });
+    }
+    return out;
+  };
+  const agenda = ler('Agenda', SYNC_COLS_AGENDA, true);
+  const cancelados = ler('Cancelados', SYNC_COLS_CANCELADOS, false);
+
+  const corpo = { spreadsheetId: psi.id };
+  if (agenda) corpo.agenda = agenda;
+  if (cancelados) corpo.cancelados = cancelados;
+  const resp = syncChamarRpc_(cfg, 'legacy_ingest_agenda', { p_token: cfg.token, p: corpo });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error(`Supabase respondeu ${resp.getResponseCode()}: ${resp.getContentText().slice(0, 300)}`);
+  }
+  return { agenda: agenda ? agenda.length : 'sem aba', cancelados: cancelados ? cancelados.length : 'sem aba' };
+}
+
+/** Envia a aba Painel da planilha de Salas (grade de salas × horários). */
+function syncEnviarSalas_(cfg) {
+  const id = String(PropertiesService.getScriptProperties().getProperty('SALAS_SPREADSHEET_ID') || '').trim();
+  if (!id) return null; // não configurado: segue sem salas
+  const aba = SpreadsheetApp.openById(id).getSheetByName('Painel');
+  if (!aba) throw new Error('Aba "Painel" não encontrada na planilha de Salas.');
+  const valores = aba.getDataRange().getDisplayValues();
+  const cabecalho = (valores[0] || []).map(v => String(v || '').trim());
+  const linhas = [];
+  for (let i = 1; i < valores.length; i++) {
+    const r = valores[i].map(v => String(v || '').trim());
+    if (!r[0] && !r[1]) continue;
+    linhas.push({ linha: i + 1, celulas: r });
+  }
+  const resp = syncChamarRpc_(cfg, 'legacy_ingest_salas', { p_token: cfg.token, p: { cabecalho: cabecalho, linhas: linhas } });
+  if (resp.getResponseCode() !== 200) {
+    throw new Error(`Supabase respondeu ${resp.getResponseCode()}: ${resp.getContentText().slice(0, 300)}`);
+  }
+  return linhas.length;
+}
+
+/** Teste: envia Agenda/Cancelados de uma psicóloga (nome da aba ID) e as Salas. */
+function testarAgendaSalasSupabase(nomeAbreviado) {
+  const cfg = syncLerConfiguracao_();
+  const lista = syncListarPsicologas_();
+  const psi = nomeAbreviado
+    ? lista.find(p => String(p.nomeAbreviado).trim() === String(nomeAbreviado).trim())
+    : lista[0];
+  if (!psi) throw new Error('Psicóloga não encontrada na aba ID.');
+  console.log(JSON.stringify(syncEnviarAgendaCancelados_(cfg, psi)));
+  const s = syncEnviarSalas_(cfg);
+  console.log(s === null ? 'Salas: configure SALAS_SPREADSHEET_ID nas Propriedades do script.' : `Salas: ${s} linhas`);
 }
 
 /**

@@ -5,6 +5,9 @@ import { alertas, indicadores, rotuloEixo, rotuloMes, type Painel } from '@/lib/
 import { Barras, Colunas, ColunasDuplas, MiniBarra } from './graficos'
 import { BotaoSincronizar } from '@/app/financeiro/sincronizar/botao-sincronizar'
 import d from './dashboard.module.css'
+import fs from '@/app/financeiro/financeiro.module.css'
+import m from '@/app/shell/shell.module.css'
+import { MenuLateral } from '@/app/shell/menu-lateral'
 
 export const metadata = { title: 'Painel da clínica — HOPE CORE' }
 export const maxDuration = 30
@@ -18,28 +21,9 @@ const MES_LONGO = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', '
 const quando = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'
 
+// Menu comum do HOPE CORE (menu lateral do Sistema Gerencial e BI)
 function Menu({ email }: { email: string }) {
-  return (
-    <header className={d.topo}>
-      <span className={d.marca}>HOPE CORE</span>
-      <nav className={d.menu}>
-        <a href="/dashboard" className={d.ativo}>
-          Painel
-        </a>
-        <a href="/financeiro/agenda">Agenda</a>
-        <a href="/financeiro/guias">Registro de Guias</a>
-        <a href="/financeiro/divergencias">Divergências</a>
-        <a href="/financeiro/conferencia">Conferência</a>
-        <a href="/financeiro/nao-lancadas">Não lançadas</a>
-        <a href="/financeiro/dre">DRE</a>
-        <a href="/financeiro/repasse">Repasse</a>
-        <a href="/financeiro">Unimed</a>
-        <a href="/financeiro/importar">Importar XML</a>
-        <a href="/financeiro/notas">Notas fiscais</a>
-      </nav>
-      <span className={d.usuario}>{email}</span>
-    </header>
-  )
+  return <MenuLateral email={email} />
 }
 
 export default async function DashboardPage() {
@@ -93,9 +77,9 @@ export default async function DashboardPage() {
 
   if (!fin.allowed || !painel) {
     return (
-      <div className={d.shell}>
+      <div className={`${fs.shell} ${d.shell} ${m.corpo}`}>
         <Menu email={user.email ?? ''} />
-        <main className={d.main}>
+        <main className={`${d.main} ${m.coluna}`}>
           <h1 className={d.titulo}>Painel da clínica</h1>
           <p className={d.sub}>
             {erroPainel
@@ -128,9 +112,9 @@ export default async function DashboardPage() {
   const vrUnimed = p.valor_real.find((v) => v.plano === 'Unimed')
 
   return (
-    <div className={d.shell}>
+    <div className={`${fs.shell} ${d.shell} ${m.corpo}`}>
       <Menu email={user.email ?? ''} />
-      <main className={d.main}>
+      <main className={`${d.main} ${m.coluna}`}>
         <h1 className={d.titulo}>Painel da clínica</h1>
         <p className={d.sub}>
           Dados reais cruzados: planilhas das psicólogas (atualizadas {quando(p.atualizacao.planilhas)}), demonstrativos da
