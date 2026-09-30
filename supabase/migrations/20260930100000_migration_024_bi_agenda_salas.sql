@@ -233,7 +233,7 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended('legado:salas', 0));
-  delete from legado.salas_painel;
+  delete from legado.salas_painel where true;
   insert into legado.salas_painel (linha, celulas)
   select (l->>'linha')::int, l->'celulas'
     from jsonb_array_elements(p->'linhas') l

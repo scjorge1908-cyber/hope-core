@@ -4,7 +4,7 @@
 -- No Supabase, chamadas vindas da API (anon/authenticated) passam pelo
 -- pg_safeupdate, que recusa DELETE sem WHERE ("DELETE requires a WHERE
 -- clause", código 21000). A função legacy_ingest_exencoes limpava o
--- espelho com "delete from legado.exencoes;" e falhava na 1ª sincronização.
+-- espelho com "delete from legado.exencoes where true;" e falhava na 1ª sincronização.
 -- Única mudança: o DELETE passa a ter "where true" (mesmo efeito: espelho
 -- completo da aba). Permissões (grants) da função são preservadas pelo
 -- create or replace.

@@ -185,7 +185,7 @@ begin
   end if;
 
   perform pg_advisory_xact_lock(hashtextextended('legado:exencoes', 0));
-  delete from legado.exencoes;
+  delete from legado.exencoes where true;
   insert into legado.exencoes (linha, psicologa_id, cnpj, percentual)
   select (l->>'linha')::int, l->'celulas'->0, l->'celulas'->1, l->'celulas'->2
     from jsonb_array_elements(p->'linhas') l;
