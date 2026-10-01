@@ -8,7 +8,7 @@
 // ================================================================
 
 type Num = number
-type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 type NoInsert = Record<string, never>
 
@@ -357,6 +357,25 @@ export type FinanceDatabase = {
       bi_base: { Args: never; Returns: Json }
       // migration 025 — Gerar guias (previstas × geradas)
       bi_gerar_guias_base: { Args: never; Returns: Json }
+      // migration 026 — Banco de dados (ver/editar as tabelas reais; só o dono)
+      db_e_dono: { Args: never; Returns: boolean }
+      db_catalogo: { Args: never; Returns: Json }
+      db_tabela: { Args: { p_esquema: string; p_tabela: string }; Returns: Json }
+      db_linhas: {
+        Args: {
+          p_esquema: string
+          p_tabela: string
+          p_busca?: string | null
+          p_ordem?: string | null
+          p_desc?: boolean
+          p_limite?: number
+          p_offset?: number
+        }
+        Returns: Json
+      }
+      db_salvar: { Args: { p_esquema: string; p_tabela: string; p_chave: Json | null; p_valores: Json }; Returns: Json }
+      db_excluir: { Args: { p_esquema: string; p_tabela: string; p_chave: Json }; Returns: Json }
+      db_descrever: { Args: { p_esquema: string; p_tabela: string; p_coluna: string | null; p_campos: Json }; Returns: undefined }
       // migration 018 — demonstrativo (XML) da Unimed vira previsto na Agenda
       previstos_demonstrativos_sync: { Args: never; Returns: number }
       // migration 017 — banco

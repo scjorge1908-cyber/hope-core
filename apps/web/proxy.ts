@@ -36,8 +36,9 @@ export async function proxy(request: NextRequest) {
   const isDashboardRoute = url.pathname.startsWith('/dashboard')
   const isFinanceiroRoute = url.pathname.startsWith('/financeiro')
   const isBiRoute = url.pathname === '/bi' || url.pathname.startsWith('/bi/')
+  const isSistemaRoute = url.pathname === '/sistema' || url.pathname.startsWith('/sistema/')
 
-  if ((isDashboardRoute || isFinanceiroRoute || isBiRoute) && !user) {
+  if ((isDashboardRoute || isFinanceiroRoute || isBiRoute || isSistemaRoute) && !user) {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }

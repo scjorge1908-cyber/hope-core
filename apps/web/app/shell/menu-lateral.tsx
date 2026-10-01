@@ -47,6 +47,10 @@ export const GRUPOS: Grupo[] = [
       { href: '/financeiro/notas', label: 'Notas fiscais', icone: '🧾' },
     ],
   },
+  {
+    titulo: 'Sistema',
+    itens: [{ href: '/sistema/banco', label: 'Banco de dados', icone: '🗄️' }],
+  },
 ]
 
 const ativo = (atual: string, href: string) =>
