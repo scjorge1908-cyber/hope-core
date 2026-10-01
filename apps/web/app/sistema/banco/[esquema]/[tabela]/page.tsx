@@ -97,7 +97,7 @@ export default async function TabelaPage({ params, searchParams }: PageProps<'/s
             ? 'Somente leitura nesta tela.'
             : d.chave.length === 0
               ? 'Esta tabela não tem chave primária: dá para ver, mas não editar por aqui.'
-              : 'Clique numa célula para editar · Enter salva · Esc cancela. Toda mudança vai direto para o banco e fica no histórico abaixo.'}
+              : 'Para editar: clique em ✏️ Editar na linha (todas as células viram campos → Salvar) ou clique direto numa célula (Enter salva · Esc cancela). Toda mudança vai direto para o banco e fica no histórico abaixo.'}
           {d.porClinica && ' Mostrando só as linhas da Clínica Hope.'}
         </p>
         {lin.error && <div className={s.alertBad}>Erro ao ler as linhas: {lin.error.message}</div>}

@@ -118,9 +118,11 @@ function EditorCelula({
 }
 
 /**
- * Grade estilo planilha: clique na célula → edita → Enter salva (só aquela
- * coluna vai para o banco). "+ Nova linha" abre uma linha em branco no topo.
- * Excluir pede confirmação na própria linha.
+ * Grade estilo planilha. Duas formas de editar:
+ *  • botão "Editar" da linha → todas as células da linha viram campos → Salvar;
+ *  • clique direto numa célula → edita só ela → Enter salva, Esc cancela.
+ * Só as colunas alteradas vão para o banco. "+ Nova linha" abre uma linha em
+ * branco no topo. Excluir pede confirmação na própria linha.
  */
 export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem, desc, busca }: Props) {
   const router = useRouter()
@@ -129,6 +131,7 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
   const [salvando, setSalvando] = useState<string | null>(null)
   const [novo, setNovo] = useState<Record<string, string> | null>(null)
   const [confirmar, setConfirmar] = useState<number | null>(null)
+  const [linhaEd, setLinhaEd] = useState<{ i: number; valores: Record<string, string> } | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
 
@@ -176,6 +179,44 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
       else terminar(`Salvo: ${col.nome}.`)
     })
     return true
+  }
+
+  // ---------- editar a linha inteira ----------
+  const abrirEdicao = (i: number) => {
+    setErro(null)
+    setCelula(null)
+    setConfirmar(null)
+    setNovo(null)
+    setLinhaEd({ i, valores: Object.fromEntries(visiveis.filter(podeEditar).map((c) => [c.nome, paraTexto(linhas[i][c.nome])])) })
+  }
+
+  const salvarEdicao = () => {
+    if (!linhaEd) return
+    const linha = linhas[linhaEd.i]
+    const valores: Record<string, unknown> = {}
+    try {
+      for (const c of visiveis.filter(podeEditar)) {
+        const t = linhaEd.valores[c.nome] ?? ''
+        if (t === paraTexto(linha[c.nome])) continue // não mudou
+        valores[c.nome] = deTexto(t, c.tipo)
+      }
+    } catch (e) {
+      setErro((e as Error).message)
+      return
+    }
+    if (Object.keys(valores).length === 0) {
+      setLinhaEd(null)
+      return
+    }
+    setErro(null)
+    iniciar(async () => {
+      const r = await salvarLinha(esquema, tabela, chaveDaLinha(linha, chave), valores)
+      if (!r.ok) setErro(r.erro)
+      else {
+        setLinhaEd(null)
+        terminar(`Linha salva (${Object.keys(valores).join(', ')}).`)
+      }
+    })
   }
 
   // ---------- nova linha ----------
@@ -236,7 +277,15 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
     <>
       <div className={b.ferramentas}>
         {editavel && !novo && (
-          <button type="button" className={s.button} onClick={() => setNovo({})} disabled={pendente}>
+          <button
+            type="button"
+            className={s.button}
+            onClick={() => {
+              setLinhaEd(null)
+              setNovo({})
+            }}
+            disabled={pendente}
+          >
             + Nova linha
           </button>
         )}
@@ -265,6 +314,7 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
           <thead>
             <tr>
               <th className={b.colNum}>#</th>
+              {editavel && <th className={b.colAcoes}>Ações</th>}
               {visiveis.map((c) => (
                 <th key={c.nome} title={[c.tipo, c.descricao].filter(Boolean).join(' — ')}>
                   <Link href={hrefOrdem(c.nome)} className={b.ordenar}>
@@ -275,13 +325,22 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
                   <span className={b.tipoCol}>{c.tipo}</span>
                 </th>
               ))}
-              {editavel && <th className={b.colAcoes}>Ações</th>}
             </tr>
           </thead>
           <tbody>
             {novo && (
               <tr className={b.linhaNova}>
                 <td className={b.colNum}>novo</td>
+                <td className={b.colAcoes}>
+                  <span className={b.acoesLinha}>
+                    <button type="button" className={s.buttonSmall} onClick={salvarNova} disabled={pendente}>
+                      Salvar
+                    </button>
+                    <button type="button" className={b.linkBotao} onClick={() => setNovo(null)} disabled={pendente}>
+                      cancelar
+                    </button>
+                  </span>
+                </td>
                 {visiveis.map((c) => (
                   <td key={c.nome}>
                     {podeEditar(c) ? (
@@ -301,16 +360,6 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
                     )}
                   </td>
                 ))}
-                <td className={b.colAcoes}>
-                  <span className={b.acoesLinha}>
-                    <button type="button" className={s.buttonSmall} onClick={salvarNova} disabled={pendente}>
-                      Salvar
-                    </button>
-                    <button type="button" className={b.linkBotao} onClick={() => setNovo(null)} disabled={pendente}>
-                      cancelar
-                    </button>
-                  </span>
-                </td>
               </tr>
             )}
             {linhas.length === 0 && !novo && (
@@ -321,18 +370,80 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
               </tr>
             )}
             {linhas.map((l, i) => (
-              <tr key={i} className={confirmar === i ? b.linhaExcluir : undefined}>
+              <tr key={i} className={confirmar === i ? b.linhaExcluir : linhaEd?.i === i ? b.linhaEditando : undefined}>
                 <td className={b.colNum}>{i + 1}</td>
+                {editavel && (
+                  <td className={b.colAcoes}>
+                    {linhaEd?.i === i ? (
+                      <span className={b.acoesLinha}>
+                        <button type="button" className={s.buttonSmall} onClick={salvarEdicao} disabled={pendente}>
+                          Salvar
+                        </button>
+                        <button type="button" className={b.linkBotao} onClick={() => setLinhaEd(null)} disabled={pendente}>
+                          cancelar
+                        </button>
+                      </span>
+                    ) : confirmar === i ? (
+                      <span className={b.acoesLinha}>
+                        <button type="button" className={b.botaoPerigo} onClick={() => excluir(i)} disabled={pendente}>
+                          Confirmar exclusão
+                        </button>
+                        <button type="button" className={b.linkBotao} onClick={() => setConfirmar(null)}>
+                          não
+                        </button>
+                      </span>
+                    ) : (
+                      <span className={b.acoesLinha}>
+                        <button type="button" className={b.botaoEditar} onClick={() => abrirEdicao(i)} disabled={pendente} title="Editar esta linha">
+                          ✏️ Editar
+                        </button>
+                        <button
+                          type="button"
+                          className={b.linkPerigo}
+                          onClick={() => {
+                            setLinhaEd(null)
+                            setConfirmar(i)
+                          }}
+                          disabled={pendente}
+                          title="Excluir esta linha do banco"
+                        >
+                          Excluir
+                        </button>
+                      </span>
+                    )}
+                  </td>
+                )}
                 {visiveis.map((c) => {
                   const ativa = celula?.linha === i && celula.coluna === c.nome
                   const texto = paraTexto(l[c.nome])
+                  if (linhaEd?.i === i)
+                    return (
+                      <td key={c.nome} className={b.celEdicao}>
+                        {podeEditar(c) ? (
+                          <Campo
+                            coluna={c}
+                            valor={linhaEd.valores[c.nome] ?? ''}
+                            mudar={(v) => setLinhaEd({ ...linhaEd, valores: { ...linhaEd.valores, [c.nome]: v } })}
+                            aoTeclar={(e) => {
+                              if (e.key === 'Escape') setLinhaEd(null)
+                              if (e.key === 'Enter' && e.currentTarget.tagName !== 'TEXTAREA') {
+                                e.preventDefault()
+                                salvarEdicao()
+                              }
+                            }}
+                          />
+                        ) : (
+                          mostrar(c, l[c.nome])
+                        )}
+                      </td>
+                    )
                   return (
                     <td
                       key={c.nome}
                       className={`${podeEditar(c) ? b.celEditavel : ''} ${salvando === `${i}:${c.nome}` ? b.celSalvando : ''} ${familia(c.tipo) === 'numero' ? b.celNumero : ''}`}
                       title={!ativa && texto.length > 80 ? texto.slice(0, 1500) : undefined}
                       onClick={() => {
-                        if (!ativa && podeEditar(c) && !pendente) {
+                        if (!ativa && podeEditar(c) && !pendente && !linhaEd) {
                           setErro(null)
                           setCelula({ linha: i, coluna: c.nome })
                         }
@@ -346,24 +457,6 @@ export function Grade({ esquema, tabela, colunas, chave, linhas, editavel, ordem
                     </td>
                   )
                 })}
-                {editavel && (
-                  <td className={b.colAcoes}>
-                    {confirmar === i ? (
-                      <span className={b.acoesLinha}>
-                        <button type="button" className={b.botaoPerigo} onClick={() => excluir(i)} disabled={pendente}>
-                          Confirmar exclusão
-                        </button>
-                        <button type="button" className={b.linkBotao} onClick={() => setConfirmar(null)}>
-                          não
-                        </button>
-                      </span>
-                    ) : (
-                      <button type="button" className={b.linkPerigo} onClick={() => setConfirmar(i)} disabled={pendente} title="Excluir esta linha do banco">
-                        Excluir
-                      </button>
-                    )}
-                  </td>
-                )}
               </tr>
             ))}
           </tbody>

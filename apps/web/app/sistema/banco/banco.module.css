@@ -393,7 +393,8 @@
 }
 
 .colAcoes {
-  text-align: right !important;
+  text-align: left !important;
+  white-space: nowrap;
 }
 
 .celEditavel {
@@ -402,6 +403,39 @@
 
 .celEditavel:hover {
   box-shadow: inset 0 0 0 1px var(--fin-accent);
+  background: var(--fin-surface) !important;
+}
+
+.linhaEditando td {
+  background: var(--fin-accent-soft) !important;
+  overflow: visible;
+}
+
+.celEdicao {
+  min-width: 140px;
+}
+
+.botaoEditar {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--fin-border-strong);
+  background: var(--fin-surface);
+  color: var(--fin-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.botaoEditar:hover {
+  border-color: var(--fin-accent);
+  color: var(--fin-accent);
+}
+
+.botaoEditar:disabled {
+  opacity: 0.5;
+  cursor: wait;
 }
 
 .celSalvando {
