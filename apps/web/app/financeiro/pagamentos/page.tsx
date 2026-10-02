@@ -2,11 +2,15 @@ import QRCode from 'qrcode'
 import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { dataBR } from '@/lib/financeiro/format'
-import { MESES, processarRelatorio, type BaseRpaLegado } from '@/lib/financeiro/rpa-legado'
+import { MESES } from '@/lib/financeiro/rpa-legado'
+import { carregarRepasseDoMes } from '@/lib/financeiro/pagamentos-dados'
 import { gerarPixCopiaECola, normalizarChavePix, type ChavePix } from '@/lib/financeiro/pix-brcode'
 import {
   competenciaDe,
   janelaExtrato,
+  ordenarFila,
+  situacaoDe,
+  type Situacao,
   sugerirPix,
   txidRepasse,
   type LinhaOk,
@@ -34,8 +38,6 @@ const FORMA: Record<RepassePagamentoRow['forma'], string> = {
   extrato: 'Pix do extrato (Cora)',
   outro: 'Outro',
 }
-
-type Situacao = 'pago' | 'pendente' | 'sem_valor'
 
 type Linha = {
   d: LinhaOk
@@ -67,30 +69,11 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
   const erroMsg = typeof sp.erro === 'string' ? sp.erro : null
 
   // 1) valores a pagar = cálculo do RPA (mesma função do relatório "Apenas Valor a Pagar")
-  let erro: string | null = null
-  let resultado: ReturnType<typeof processarRelatorio> | null = null
-  const { data: base, error: erroBase } = await supabase.rpc('legacy_rpa_base')
-  if (erroBase) erro = erroBase.message
-  else {
-    try {
-      resultado = processarRelatorio(base as unknown as BaseRpaLegado, mes, ano)
-    } catch (e) {
-      erro = (e as Error).message
-    }
-  }
-  const comErro = (resultado?.relatorioFinal.filter((d) => d.erro) ?? []) as Extract<
-    NonNullable<typeof resultado>['relatorioFinal'][number],
-    { erro: true }
-  >[]
-  const ok = (resultado?.relatorioFinal.filter((d) => !d.erro) ?? []) as LinhaOk[]
-
   // 2) o que já foi marcado como pago neste mês
-  const { data: pagamentosRaw, error: erroPag } = await supabase
-    .from('repasse_pagamentos')
-    .select('*')
-    .eq('competencia', competencia)
-  const tabelaFalta = !!erroPag
-  const pagamentos = new Map((pagamentosRaw ?? []).map((x) => [x.spreadsheet_id, x]))
+  //    → carregarRepasseDoMes: a MESMA função usada pelo PDF do controle
+  const dados = await carregarRepasseDoMes(supabase, mes, ano)
+  const { erro, comErro, ok, pagamentos, tabelaFalta } = dados
+  const resultado = erro ? null : dados
 
   // 3) Pix de saída do extrato do Cora na janela de pagamento
   const janela = janelaExtrato(competencia)
@@ -120,8 +103,8 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
   for (const d of ok) {
     const valor = Number(d.valorLiquido) || 0
     const pg = pagamentos.get(d.id) ?? null
-    const pago = !!pg?.pago
-    const situacao: Situacao = pago ? 'pago' : valor > 0 ? 'pendente' : 'sem_valor'
+    const situacao: Situacao = situacaoDe(valor, pg)
+    const pago = situacao === 'pago'
     const chave = normalizarChavePix(d.pixKey)
     let pix: Linha['pix'] = null
     let pixErro: string | null = null
@@ -153,7 +136,9 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
     linhas.push({ d, valor, situacao, pagamento: pg, chave, pix, pixErro, sugestao, extratoDoPago })
   }
 
-  const aPagar = linhas.filter((l) => l.valor > 0 || l.situacao === 'pago')
+  // fila: quem falta pagar primeiro; ao marcar como pago, a psicóloga vai para o fim
+  const fila = ordenarFila(linhas)
+  const aPagar = fila.filter((l) => l.valor > 0 || l.situacao === 'pago')
   const totalCalculado = aPagar.reduce((t, l) => t + l.valor, 0)
   const totalPago = linhas.filter((l) => l.situacao === 'pago').reduce((t, l) => t + Number(l.pagamento!.valor_pago), 0)
   const totalPendente = linhas.filter((l) => l.situacao === 'pendente').reduce((t, l) => t + l.valor, 0)
@@ -161,7 +146,7 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
   const qtdPendentes = linhas.filter((l) => l.situacao === 'pendente').length
   const qtdConfirmados = linhas.filter((l) => l.situacao === 'pago' && l.pagamento?.bank_transaction_id).length
 
-  const visiveis = linhas.filter((l) =>
+  const visiveis = fila.filter((l) =>
     filtro === 'pendentes' ? l.situacao === 'pendente' : filtro === 'pagos' ? l.situacao === 'pago' : l.situacao !== 'sem_valor'
   )
   const semValor = linhas.filter((l) => l.situacao === 'sem_valor')
@@ -406,9 +391,19 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
       {/* ---------------- RELATÓRIO: pagos × não pagos (é o que sai na impressão) ---------------- */}
       {resultado && (
         <div className={r.relatorio} style={{ marginTop: 8 }}>
-          <h1>
-            Controle de pagamento do repasse - {mes}/{ano}
-          </h1>
+          <div className={p.relatorioTopo}>
+            <h1>
+              Controle de pagamento do repasse - {mes}/{ano}
+            </h1>
+            <a
+              className={`${s.button} ${r.naoImprimir}`}
+              href={`/financeiro/pagamentos/pdf?mes=${mes}&ano=${ano}`}
+              download
+              style={{ fontFamily: 'inherit' }}
+            >
+              ⬇ Baixar PDF
+            </a>
+          </div>
           <p style={{ fontSize: 11, color: '#666', marginTop: 0 }}>
             Valor a pagar = relatório “Apenas Valor a Pagar (Líquido)” do RPA. Emitido em{' '}
             {new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.

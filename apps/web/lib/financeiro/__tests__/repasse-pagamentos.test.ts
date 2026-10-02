@@ -49,3 +49,20 @@ describe('pagamentos de repasse', () => {
     expect(t.startsWith('REPHOPE202609')).toBe(true)
   })
 })
+
+describe('fila de pagamento', () => {
+  it('pendentes primeiro (ordem do RPA), pagos no fim na ordem em que foram marcados', async () => {
+    const { ordenarFila } = await import('../repasse-pagamentos')
+    const l = (id: string, situacao: 'pago' | 'pendente' | 'sem_valor', marcado?: string) => ({
+      id, situacao, pagamento: marcado ? { marcado_em: marcado } : null,
+    })
+    const fila = ordenarFila([
+      l('A', 'pago', '2026-10-02T18:05:00Z'),
+      l('B', 'pendente'),
+      l('C', 'sem_valor'),
+      l('D', 'pago', '2026-10-02T18:00:00Z'),
+      l('E', 'pendente'),
+    ])
+    expect(fila.map((x) => x.id)).toEqual(['B', 'E', 'C', 'D', 'A'])
+  })
+})

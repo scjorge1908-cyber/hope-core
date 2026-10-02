@@ -238,3 +238,22 @@
     padding-top: 16px;
   }
 }
+
+/* título do controle + botão "Baixar PDF" */
+.relatorioTopo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.relatorioTopo h1 {
+  flex: 1 1 320px;
+  margin-top: 0;
+}
+
+.relatorioTopo a {
+  text-decoration: none;
+  white-space: nowrap;
+}

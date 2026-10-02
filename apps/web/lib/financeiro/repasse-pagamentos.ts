@@ -11,6 +11,7 @@
 // ================================================================
 
 import type { LinhaRelatorio } from './rpa-legado'
+import type { RepassePagamentoRow } from './db-types'
 import { MESES } from './rpa-legado'
 
 export type LinhaOk = Extract<LinhaRelatorio, { erro: false }>
@@ -103,4 +104,30 @@ export function sugerirPix(
 export function txidRepasse(competencia: string, spreadsheetId: string): string {
   const id = spreadsheetId.replace(/[^A-Za-z0-9]/g, '').slice(-6)
   return `REPHOPE${competencia.slice(0, 4)}${competencia.slice(5, 7)}${id}`.slice(0, 25)
+}
+
+export type Situacao = 'pago' | 'pendente' | 'sem_valor'
+
+export function situacaoDe(valor: number, pg: Pick<RepassePagamentoRow, 'pago'> | null | undefined): Situacao {
+  return pg?.pago ? 'pago' : valor > 0 ? 'pendente' : 'sem_valor'
+}
+
+const ORDEM: Record<Situacao, number> = { pendente: 0, sem_valor: 1, pago: 2 }
+
+/**
+ * Fila de pagamento: primeiro quem falta pagar (na ordem da aba ID do RPA),
+ * depois quem não tem valor, e por último os PAGOS — na ordem em que foram
+ * marcados (o último pago vai para o fim da fila).
+ */
+export function ordenarFila<T extends { situacao: Situacao; pagamento: Pick<RepassePagamentoRow, 'marcado_em'> | null }>(
+  linhas: T[]
+): T[] {
+  return [...linhas].sort((a, b) => {
+    const d = ORDEM[a.situacao] - ORDEM[b.situacao]
+    if (d !== 0) return d
+    if (a.situacao === 'pago' && b.situacao === 'pago') {
+      return String(a.pagamento?.marcado_em ?? '').localeCompare(String(b.pagamento?.marcado_em ?? ''))
+    }
+    return 0
+  })
 }
