@@ -74,6 +74,19 @@ export function normalizarChavePix(bruta: unknown): ChavePix {
   if (!pareceTelefone && digitos.length === 14 && cnpjValido(digitos)) return ok('cnpj', digitos)
   if (!pareceTelefone && digitos.length === 11 && cpfValido(digitos)) return ok('cpf', digitos)
 
+  // CPF/CNPJ que a planilha guardou como NÚMERO perde os zeros da frente
+  // (01761079590 vira 1761079590). Só digitos (sem +, parênteses, traço ou
+  // ponto) e curto demais: se recolocando os zeros vira CPF/CNPJ válido,
+  // é CPF/CNPJ — o app do banco ainda mostra o titular antes de pagar.
+  if (!pareceTelefone && /^\d+$/.test(texto)) {
+    if (digitos.length >= 12 && digitos.length < 14 && cnpjValido(digitos.padStart(14, '0'))) {
+      return { ok: true, tipo: 'cnpj', chave: digitos.padStart(14, '0'), rotulo: 'CNPJ — zeros da frente recolocados' }
+    }
+    if (digitos.length >= 9 && digitos.length < 11 && cpfValido(digitos.padStart(11, '0'))) {
+      return { ok: true, tipo: 'cpf', chave: digitos.padStart(11, '0'), rotulo: 'CPF — zeros da frente recolocados' }
+    }
+  }
+
   // telefone: com +55 / 55 na frente, ou DDD + 8/9 dígitos
   let tel = digitos
   if ((tel.length === 12 || tel.length === 13) && tel.startsWith('55')) tel = tel.slice(2)

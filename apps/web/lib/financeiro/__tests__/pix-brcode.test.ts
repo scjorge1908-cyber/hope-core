@@ -48,6 +48,14 @@ describe('Pix estático (BR Code)', () => {
     expect(normalizarChavePix(bruta)).toMatchObject({ ok: true, tipo, chave })
   })
 
+  it('CPF/CNPJ guardado como número (zeros da frente perdidos) volta com os zeros', () => {
+    expect(normalizarChavePix('1761079590')).toMatchObject({ ok: true, tipo: 'cpf', chave: '01761079590' })
+    expect(normalizarChavePix(1761079590)).toMatchObject({ ok: true, tipo: 'cpf', chave: '01761079590' })
+    expect(normalizarChavePix('01761079590')).toMatchObject({ ok: true, tipo: 'cpf', chave: '01761079590' })
+    expect(normalizarChavePix('7283631000129')).toMatchObject({ ok: false }) // padStart(14) não é CNPJ válido
+    expect(normalizarChavePix('(48) 3242-1234')).toMatchObject({ ok: true, tipo: 'telefone', chave: '+554832421234' })
+  })
+
   it('avisa quando a chave não é reconhecida', () => {
     expect(normalizarChavePix('')).toMatchObject({ ok: false })
     expect(normalizarChavePix('12345')).toMatchObject({ ok: false })

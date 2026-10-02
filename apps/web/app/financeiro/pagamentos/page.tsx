@@ -284,8 +284,13 @@ export default async function PagamentosPage({ searchParams }: PageProps<'/finan
                     </>
                   )}
                   <br />
-                  🔑 Chave Pix: {l.d.pixKey ? <code>{String(l.d.pixKey)}</code> : 'não informada'}
-                  {l.chave.ok && <span className={p.tipoChave}> ({l.chave.rotulo})</span>}
+                  🔑 Chave Pix: {l.d.pixKey ? <code>{l.chave.ok ? l.chave.chave : String(l.d.pixKey)}</code> : 'não informada'}
+                  {l.chave.ok && (
+                    <span className={p.tipoChave} style={l.chave.rotulo.includes('recolocados') ? { color: 'var(--fin-warn)', fontWeight: 600 } : undefined}>
+                      {' '}({l.chave.rotulo}
+                      {l.chave.rotulo.includes('recolocados') ? ` — na planilha está "${String(l.d.pixKey)}"; formate a célula O2 como texto` : ''})
+                    </span>
+                  )}
                 </div>
 
                 {l.d.qtdSessoes33SemUnimed > 0 && (
