@@ -19,6 +19,7 @@ const ITENS: Item[] = [
   { href: '/financeiro/conferencia', label: 'Conferência de guias' },
   { href: '/financeiro/nao-lancadas', label: 'Guias não lançadas' },
   { href: '/financeiro/banco', label: 'Banco (Cora)' },
+  { href: '/financeiro/banco/bradesco', label: 'Banco (Bradesco)' },
   { href: '/financeiro/dre', label: 'DRE' },
   { href: '/financeiro/projecao', label: 'Projeção' },
 ]
@@ -26,7 +27,9 @@ const ITENS: Item[] = [
 /** Abas do financeiro com a página atual destacada. */
 export function NavFinanceiro() {
   const atual = usePathname() ?? ''
-  const ativo = (href: string) => (href === '/financeiro' ? atual === href : atual === href || atual.startsWith(`${href}/`))
+  const casa = (href: string) => (href === '/financeiro' ? atual === href : atual === href || atual.startsWith(`${href}/`))
+  // item mais específico ganha (ex.: /financeiro/banco/bradesco não acende também /financeiro/banco)
+  const ativo = (href: string) => casa(href) && !ITENS.some((i) => i.href.length > href.length && i.href.startsWith(`${href}/`) && casa(i.href))
 
   return (
     <nav className={s.nav} aria-label="Financeiro">

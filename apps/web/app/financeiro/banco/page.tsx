@@ -52,7 +52,7 @@ export default async function BancoPage({ searchParams }: PageProps<'/financeiro
   // ---------- conciliação com a Agenda ----------
   const desde = somarDias(hoje, -120)
   const [{ data: sync }, { data: creditos }, { data: vinculos }] = await Promise.all([
-    supabase.from('bank_sync').select('*').maybeSingle(),
+    supabase.from('bank_sync').select('*').eq('bank', 'cora').maybeSingle(),
     supabase
       .from('bank_transactions')
       .select('*')

@@ -40,6 +40,7 @@ export const GRUPOS: Grupo[] = [
       { href: '/financeiro', label: 'Painel financeiro', icone: '💼' },
       { href: '/financeiro/agenda', label: 'Agenda de recebimentos', icone: '🗓️' },
       { href: '/financeiro/banco', label: 'Banco (Cora)', icone: '🏦' },
+      { href: '/financeiro/banco/bradesco', label: 'Banco (Bradesco)', icone: '🏛️' },
       { href: '/financeiro/dre', label: 'DRE', icone: '🧮' },
       { href: '/financeiro/projecao', label: 'Projeção', icone: '🔮' },
       { href: '/financeiro/repasse', label: 'RPA / Repasse', icone: '💰' },
@@ -54,8 +55,12 @@ export const GRUPOS: Grupo[] = [
   },
 ]
 
-const ativo = (atual: string, href: string) =>
+const casa = (atual: string, href: string) =>
   href === '/financeiro' || href === '/bi' ? atual === href : atual === href || atual.startsWith(`${href}/`)
+// item mais específico ganha (ex.: /financeiro/banco/bradesco não acende também /financeiro/banco)
+const TODOS_HREFS = GRUPOS.flatMap((g) => g.itens.map((i) => i.href))
+const ativo = (atual: string, href: string) =>
+  casa(atual, href) && !TODOS_HREFS.some((h) => h.length > href.length && h.startsWith(`${href}/`) && casa(atual, h))
 
 // Telas largas: o menu entra recolhido (só ícones) para a página usar a tela toda.
 const RECOLHER_AUTOMATICO = ['/financeiro/dre']

@@ -37,7 +37,7 @@ export default async function DrePage({ searchParams }: PageProps<'/financeiro/d
   const [{ data: dados, error }, { data: contrapartes }, { data: sync }] = await Promise.all([
     supabase.rpc('dre_caixa', { p_ano: ano }),
     supabase.rpc('dre_contrapartes', { p_ano: ano }),
-    supabase.from('bank_sync').select('last_period_start, last_synced_at').maybeSingle(),
+    supabase.from('bank_sync').select('last_period_start, last_synced_at').eq('bank', 'cora').maybeSingle(),
   ])
   const { linhas, receitaBruta } = montarDre((dados ?? []) as LinhaDreBanco[])
   const meses = Array.from({ length: ultimoMes }, (_, i) => i)

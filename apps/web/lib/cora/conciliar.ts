@@ -33,7 +33,7 @@ export async function sincronizarBanco(supabase: SupabaseClient<FinanceDatabase>
   if (dias != null) inicio = somarDias(fim, -dias)
   else {
     const janeiro = `${fim.slice(0, 4)}-01-01`
-    const { data: sync } = await supabase.from('bank_sync').select('last_period_start, last_period_end').maybeSingle()
+    const { data: sync } = await supabase.from('bank_sync').select('last_period_start, last_period_end').eq('bank', 'cora').maybeSingle()
     if (!sync?.last_period_start || sync.last_period_start > janeiro) inicio = janeiro
     else inicio = somarDias(sync.last_period_end && sync.last_period_end < fim ? sync.last_period_end : fim, -15)
   }
@@ -61,7 +61,7 @@ export async function sincronizarBanco(supabase: SupabaseClient<FinanceDatabase>
 /** A última busca foi há mais de `minutos`? */
 export async function precisaSincronizar(supabase: SupabaseClient<FinanceDatabase>, minutos = 30): Promise<boolean> {
   if (!configCora()) return false
-  const { data } = await supabase.from('bank_sync').select('last_synced_at, last_period_start').maybeSingle()
+  const { data } = await supabase.from('bank_sync').select('last_synced_at, last_period_start').eq('bank', 'cora').maybeSingle()
   // ainda não leu o ano todo (desde 1º de janeiro) → lê já, sem esperar os 30 min
   const janeiro = `${hojeSaoPaulo().slice(0, 4)}-01-01`
   if (!data?.last_period_start || data.last_period_start > janeiro) return true
