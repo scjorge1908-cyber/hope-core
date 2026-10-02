@@ -1,6 +1,31 @@
 // =======================================================
 // SISTEMA MESTRE - CÁLCULO RPA (Com pendências de faturamento)
 // =======================================================
+// ⚠️ NOVO (02/10/2026) — REPASSE DIFERENCIADO PARA SESSÃO DE R$ 33
+//   Sessões com valor R$ 33,00 na coluna N da aba Atendimentos E
+//   plano UNIMED (coluna de Plano ou coluna Origem) têm repasse FIXO
+//   de R$ 18,00 por sessão (equivale a 54,55%).
+//   Sessão de R$ 33 que NÃO for Unimed continua com 40% e gera
+//   alerta no PDF e no log para conferência.
+//   Todas as demais sessões continuam com 40%.
+//   INSS (11%), teto e psicólogas CNPJ (isentas) NÃO mudam.
+//   ⚠️ CORREÇÃO (02/10/2026) — o que identifica a Unimed é a CARTEIRINHA
+//   (coluna L, cabeçalho "Carterinha"): número começando com 0025.
+//   O texto das colunas K/M (Plano/Origen) não é confiável: em ~800
+//   linhas com carteirinha 0025 a coluna M está vazia, "Não" ou
+//   "Não encontrado", e o cabeçalho é "Origen" (a busca por ORIGEM
+//   não achava). Quando a planilha guarda a carteirinha como NÚMERO,
+//   os zeros da frente somem (0025… vira 25…) — tratado abaixo.
+//   Regra: valor R$ 33 + carteirinha 0025 → R$ 18,00 (54,55%); o resto 40%.
+//   A mesma regra está no HOPE CORE (lib/financeiro/rpa-legado.ts).
+// =======================================================
+
+// ⚠️ NOVO — parâmetros do repasse diferenciado
+const RPA_PERCENTUAL_PADRAO = 0.40;
+const RPA_VALOR_SESSAO_ESPECIAL = 33;
+const RPA_REPASSE_SESSAO_ESPECIAL = 18; // R$ 18,00 fixo por sessão de R$ 33 Unimed (54,55%)
+const RPA_PLANO_SESSAO_ESPECIAL = 'UNIMED';
+const RPA_PREFIXO_CARTEIRINHA_UNIMED = '0025'; // ⚠️ CORREÇÃO — carteirinha Unimed começa com 0025
 
 function doGet(e) {
   return HtmlService.createTemplateFromFile('Index')
@@ -166,6 +191,10 @@ function processarRelatorioWeb(mesNome, anoAlvo, tipoRelatorio) {
           erro: false
         });
         logs.push(`✅ ${psi.nomeCompleto}: Sucesso`);
+        // ⚠️ NOVO — alerta de sessão de R$ 33 que não é Unimed
+        if (resultado.qtdSessoes33SemUnimed > 0) {
+          logs.push(`⚠️ ${psi.nomeCompleto}: ${resultado.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 SEM plano Unimed — calculadas a 40%. Conferir.`);
+        }
       } catch (e) {
         relatorioFinal.push({
           id: idPlanilha,
@@ -282,6 +311,35 @@ function extrairValorMonetario(valor) {
     return isNaN(numero) ? 0 : numero;
 }
 
+// =======================================================
+// ⚠️ NOVO — AUXILIARES DA TRAVA UNIMED
+// =======================================================
+
+// Maiúsculas e sem acentos
+function _rpaNormalizarTexto_(t) {
+  return String(t === null || t === undefined ? '' : t)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().trim();
+}
+
+// Verdadeiro se a coluna de Plano OU a coluna Origem da linha contém "UNIMED"
+function _rpaEhUnimed_(row, idxPlano, idxOrigem) {
+  const plano  = (idxPlano  >= 0 && idxPlano  < row.length) ? _rpaNormalizarTexto_(row[idxPlano])  : '';
+  const origem = (idxOrigem >= 0 && idxOrigem < row.length) ? _rpaNormalizarTexto_(row[idxOrigem]) : '';
+  return plano.indexOf(RPA_PLANO_SESSAO_ESPECIAL) !== -1 || origem.indexOf(RPA_PLANO_SESSAO_ESPECIAL) !== -1;
+}
+
+// ⚠️ CORREÇÃO — verdadeiro se a carteirinha começa com 0025 (Unimed).
+// Texto: só os dígitos. Número: a planilha tirou os zeros da frente
+// (0025… virou 25…), então devolvemos os dois zeros antes de comparar.
+function _rpaCarteirinhaUnimed_(valor) {
+  if (valor === null || valor === undefined || valor === '') return false;
+  const digitos = (typeof valor === 'number')
+    ? '00' + String(Math.trunc(Math.abs(valor)))
+    : String(valor).replace(/\D/g, '');
+  return digitos.indexOf(RPA_PREFIXO_CARTEIRINHA_UNIMED) === 0;
+}
+
 function calcularIndividual(idPlanilha, mesNome, anoAlvo, nomeCompleto, isencaoMap) {
   const ssExterna = SpreadsheetApp.openById(idPlanilha);
   const abaRegistro = ssExterna.getSheetByName("Atendimentos");
@@ -297,6 +355,22 @@ function calcularIndividual(idPlanilha, mesNome, anoAlvo, nomeCompleto, isencaoM
   let totalProducao100 = 0;
   let contagemPacientes = 0;
   let contagemPendencias = 0;
+
+  // ⚠️ NOVO — acumuladores das sessões de R$ 33 Unimed (repasse fixo R$ 18,00)
+  let totalProducao33 = 0;
+  let contagemSessoes33 = 0;
+  let comissaoSessoes33 = 0;
+  let comissaoPadraoRetorno = 0;
+  let contagemSessoes33SemUnimed = 0;
+
+  // ⚠️ NOVO — localiza as colunas de Plano e Origem pelo cabeçalho
+  const cabecalhoAtend = (dados[0] || []).map(_rpaNormalizarTexto_);
+  let idxPlanoAtend = cabecalhoAtend.findIndex(h => h.indexOf('PLANO') !== -1);
+  const idxOrigemAtend = cabecalhoAtend.findIndex(h => h.indexOf('ORIGEM') !== -1);
+  if (idxPlanoAtend === -1) idxPlanoAtend = 12; // reserva: coluna M
+  // ⚠️ CORREÇÃO — coluna da carteirinha pelo cabeçalho ("Carterinha"/"Carteirinha"); reserva: coluna L
+  let idxCarteirinhaAtend = cabecalhoAtend.findIndex(h => h.indexOf('CART') !== -1);
+  if (idxCarteirinhaAtend === -1) idxCarteirinhaAtend = 11;
 
   const isIsenta = Object.prototype.hasOwnProperty.call(isencaoMap, idPlanilha);
   const percentualIsenta = isIsenta ? Number(isencaoMap[idPlanilha]) : 0;
@@ -330,6 +404,18 @@ function calcularIndividual(idPlanilha, mesNome, anoAlvo, nomeCompleto, isencaoM
         // Sessão confirmada - conta para faturamento
         totalProducao100 += valorCheio;
         contagemPacientes++;
+
+        // ⚠️ NOVO — sessão de R$ 33: só recebe R$ 18,00 fixo se o plano for Unimed
+        if (Math.abs(valorCheio - RPA_VALOR_SESSAO_ESPECIAL) < 0.009) {
+          if (_rpaCarteirinhaUnimed_(idxCarteirinhaAtend < row.length ? row[idxCarteirinhaAtend] : '')) { // ⚠️ CORREÇÃO — antes: _rpaEhUnimed_(row, idxPlanoAtend, idxOrigemAtend)
+            totalProducao33 += valorCheio;
+            contagemSessoes33++;
+            comissaoSessoes33 += RPA_REPASSE_SESSAO_ESPECIAL;
+          } else {
+            // R$ 33 de outro plano: continua nos 40% e vira alerta
+            contagemSessoes33SemUnimed++;
+          }
+        }
       } else if (status === "") {
         // Campo vazio - é pendência
         contagemPendencias++;
@@ -351,7 +437,11 @@ function calcularIndividual(idPlanilha, mesNome, anoAlvo, nomeCompleto, isencaoM
     retencaoInss = 0;
   } else {
     // Para PF: 40% com desconto de INSS
-    const comissao40 = Number((totalProducao100 * 0.40).toFixed(2));
+    // ⚠️ NOVO — sessões de R$ 33 Unimed recebem R$ 18,00 fixo; as demais, 40%
+    const totalProducaoPadrao = totalProducao100 - totalProducao33;
+    const comissaoPadrao = Number((totalProducaoPadrao * RPA_PERCENTUAL_PADRAO).toFixed(2));
+    comissaoPadraoRetorno = comissaoPadrao;
+    const comissao40 = Number((comissaoPadrao + comissaoSessoes33).toFixed(2));
     baseCalculoRPA = comissao40;
     repasseBruto = comissao40;
     
@@ -374,7 +464,13 @@ function calcularIndividual(idPlanilha, mesNome, anoAlvo, nomeCompleto, isencaoM
     percentualIsenta: percentualIsenta,
     qtdPacientes: contagemPacientes,
     qtdPendencias: contagemPendencias,
-    totalFaturamento: totalProducao100
+    totalFaturamento: totalProducao100,
+    // ⚠️ NOVO — detalhamento das sessões de R$ 33
+    qtdSessoes33: contagemSessoes33,
+    totalProducao33: Number(totalProducao33.toFixed(2)),
+    comissaoSessoes33: Number(comissaoSessoes33.toFixed(2)),
+    comissaoPadrao: comissaoPadraoRetorno,
+    qtdSessoes33SemUnimed: contagemSessoes33SemUnimed
   };
 }
 
@@ -394,11 +490,21 @@ function gerarPDFNoDrive(listaDados, mes, ano, tipoRelatorio) {
 
     dadosRPA.forEach(d => {
       totalBaseRPA += d.repasseBruto || 0;
+      // ⚠️ NOVO — linha extra quando houver sessões de R$ 33 Unimed
+      const linha33RPA = (d.qtdSessoes33 > 0)
+        ? `<div style="font-weight:normal; font-size:10px; color:#6d28d9;">Sessões R$ 33 Unimed (R$ 18,00 cada): ${d.qtdSessoes33}</div>`
+        : "";
+      // ⚠️ NOVO — alerta de R$ 33 sem plano Unimed
+      const alerta33RPA = (d.qtdSessoes33SemUnimed > 0)
+        ? `<div style="font-weight:bold; font-size:10px; color:#dc3545;">⚠️ ${d.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 sem plano Unimed — calculadas a 40%</div>`
+        : "";
       linhasRPA += `
         <tr>
           <td class="nome-col">
             ${d.nome}
             <div style="font-weight:normal; font-size:10px; color:#555;">Pacientes: ${d.qtdPacientes || 0} (ok)</div>
+            ${linha33RPA}
+            ${alerta33RPA}
             <div style="font-weight:normal; font-size:10px; color:#dc3545;">Pendências: ${d.qtdPendencias || 0}</div>
            </td>
           <td class="valor-col">R$ ${(d.repasseBruto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -434,6 +540,10 @@ if (tipoRelatorio === "PAGAR" || tipoRelatorio === "COMPLETO") {
       totalLiquido += d.valorLiquido;
       const pixDisplay = d.pixKey ? d.pixKey : "não informada";
       const pendenciaText = d.qtdPendencias > 0 ? `<span style="color:#dc3545;">⚠️ Pendência: ${d.qtdPendencias} sessão${d.qtdPendencias !== 1 ? 's' : ''} sem status</span>` : "";
+      // ⚠️ NOVO — alerta de R$ 33 sem plano Unimed
+      const alerta33Pagar = (d.qtdSessoes33SemUnimed > 0)
+        ? `<span style="color:#dc3545; font-weight:bold;">⚠️ ${d.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 sem plano Unimed — calculadas a 40%. Conferir.</span><br>`
+        : "";
       
       let textoRepasse = "";
       if (d.isIsenta) {
@@ -443,7 +553,13 @@ if (tipoRelatorio === "PAGAR" || tipoRelatorio === "COMPLETO") {
                         <span style="color:#2e7d32;">Valor a receber (${d.percentualIsenta}%): R$ ${d.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>`;
       } else {
         // Para PF: mostra base RPA e desconto
-        textoRepasse = `Base RPA (40%): R$ ${(d.repasseBruto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
+        // ⚠️ NOVO — quando houver sessões de R$ 33 Unimed, mostra a quebra 40% + R$ 18,00
+        const quebra33 = (d.qtdSessoes33 > 0)
+          ? `&nbsp;&nbsp;• Demais sessões (40%): R$ ${(d.comissaoPadrao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
+             &nbsp;&nbsp;• ${d.qtdSessoes33} sessão(ões) de R$ 33 Unimed (R$ 18,00 cada): R$ ${(d.comissaoSessoes33 || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>`
+          : "";
+        textoRepasse = `Base RPA${d.qtdSessoes33 > 0 ? '' : ' (40%)'}: R$ ${(d.repasseBruto || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
+                        ${quebra33}
                         INSS (11%): R$ ${(d.retencaoInss || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br>
                         <span style="color:#2e7d32;">Valor líquido: R$ ${d.valorLiquido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>`;
       }
@@ -455,6 +571,7 @@ if (tipoRelatorio === "PAGAR" || tipoRelatorio === "COMPLETO") {
             <div style="font-weight:normal; font-size:10px; color:#555; margin-top: 5px;">
               ✅ Pacientes OK: ${d.qtdPacientes || 0}<br>
               ${textoRepasse}<br>
+              ${alerta33Pagar}
               🔑 Chave Pix: ${pixDisplay}<br>
               ${pendenciaText}
             </div>
@@ -469,6 +586,7 @@ if (tipoRelatorio === "PAGAR" || tipoRelatorio === "COMPLETO") {
     <p style="font-size:12px; margin-bottom:5px;">📋 <strong>Legenda:</strong></p>
     <p style="font-size:11px; color:#666; margin-top:0;">
       • <strong>Pessoa Física (PF):</strong> Repasse de 40% do faturamento com desconto de INSS (11%)<br>
+      • <strong>Sessões de R$ 33,00 Unimed (PF):</strong> repasse fixo de R$ 18,00 por sessão (54,55%)<br>
       • <strong>Pessoa Jurídica (CNPJ):</strong> Repasse do percentual individual cadastrado por psicóloga, <strong>SEM desconto de INSS</strong><br>
       • ⚠️ Pendências: sessões sem status definido (em branco)
     </p>

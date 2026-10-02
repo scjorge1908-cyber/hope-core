@@ -61,7 +61,7 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
         <Titulo titulo="Repasse das psicólogas (RPA)">
           Mesma regra e mesmo cálculo do Sistema Mestre RPA, sobre a cópia das planilhas no banco: mês pela coluna A
           (registro), valor da coluna N, status da coluna S (“OK” conta, vazio é pendência, outro texto é ignorado); PF
-          40% com INSS de 11% até o teto; CNPJ com o percentual da aba ExencaoCNPJ (padrão 45%), sem INSS.
+          40% com INSS de 11% até o teto (sessão de R$ 33 com carteirinha Unimed 0025: R$ 18,00 fixo); CNPJ com o percentual da aba ExencaoCNPJ (padrão 45%), sem INSS.
         </Titulo>
 
         <form className={s.form} style={{ maxWidth: 720, marginBottom: 20 }}>
@@ -132,6 +132,16 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
                       <td className={r.nome}>
                         {d.nome}
                         <div className={r.sub}>Pacientes: {d.qtdPacientes || 0} (ok)</div>
+                        {d.qtdSessoes33 > 0 && (
+                          <div className={r.sub} style={{ color: '#6d28d9' }}>
+                            Sessões R$ 33 Unimed (R$ 18,00 cada): {d.qtdSessoes33}
+                          </div>
+                        )}
+                        {d.qtdSessoes33SemUnimed > 0 && (
+                          <div className={r.subAlerta} style={{ fontWeight: 'bold' }}>
+                            ⚠️ {d.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 sem carteirinha Unimed (0025) — calculadas a 40%
+                          </div>
+                        )}
                         <div className={r.subAlerta}>Pendências: {d.qtdPendencias || 0}</div>
                       </td>
                       <td className={r.valor}>R$ {f2(d.repasseBruto)}</td>
@@ -159,6 +169,7 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
               </p>
               <p style={{ fontSize: 11, color: '#666', marginTop: 0 }}>
                 • <strong>Pessoa Física (PF):</strong> Repasse de 40% do faturamento com desconto de INSS (11%)
+                <br />• <strong>Sessões de R$ 33,00 Unimed (PF, carteirinha 0025):</strong> repasse fixo de R$ 18,00 por sessão (54,55%)
                 <br />• <strong>Pessoa Jurídica (CNPJ):</strong> Repasse do percentual individual cadastrado por psicóloga,{' '}
                 <strong>SEM desconto de INSS</strong>
                 <br />• ⚠️ Pendências: sessões sem status definido (em branco)
@@ -192,14 +203,30 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
                             </>
                           ) : (
                             <>
-                              Base RPA (40%): R$ {fMin2(d.repasseBruto)}
+                              Base RPA{d.qtdSessoes33 > 0 ? '' : ' (40%)'}: R$ {fMin2(d.repasseBruto)}
                               <br />
+                              {d.qtdSessoes33 > 0 && (
+                                <>
+                                  &nbsp;&nbsp;• Demais sessões (40%): R$ {fMin2(d.comissaoPadrao)}
+                                  <br />
+                                  &nbsp;&nbsp;• {d.qtdSessoes33} sessão(ões) de R$ 33 Unimed (R$ 18,00 cada): R$ {fMin2(d.comissaoSessoes33)}
+                                  <br />
+                                </>
+                              )}
                               INSS (11%): R$ {fMin2(d.retencaoInss)}
                               <br />
                               <span style={{ color: '#2e7d32' }}>Valor líquido: R$ {fMin2(d.valorLiquido)}</span>
                             </>
                           )}
                           <br />
+                          {d.qtdSessoes33SemUnimed > 0 && (
+                            <>
+                              <span style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                                ⚠️ {d.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 sem carteirinha Unimed (0025) — calculadas a 40%. Conferir.
+                              </span>
+                              <br />
+                            </>
+                          )}
                           🔑 Chave Pix: {d.pixKey ? d.pixKey : 'não informada'}
                           <br />
                           {d.qtdPendencias > 0 && (

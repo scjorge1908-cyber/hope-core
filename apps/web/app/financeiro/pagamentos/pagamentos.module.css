@@ -1,0 +1,240 @@
+/* Tela Pagamentos de repasse — uma linha por psicóloga: dados à esquerda, QR à direita */
+
+.lista {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.item,
+.itemPago {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+  background: var(--fin-surface);
+  border: 1px solid var(--fin-border);
+  border-left: 4px solid var(--fin-warn);
+  border-radius: var(--fin-radius);
+  box-shadow: var(--fin-shadow);
+  padding: 18px 20px;
+  scroll-margin-top: 80px;
+}
+
+.itemPago {
+  grid-template-columns: minmax(0, 1fr);
+  border-left-color: var(--fin-good);
+  background: color-mix(in srgb, var(--fin-good-soft) 45%, var(--fin-surface));
+}
+
+.info {
+  min-width: 0;
+}
+
+.cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.nome {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.valor {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 2px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detalhe {
+  font-size: 13px;
+  color: var(--fin-muted);
+  line-height: 1.6;
+}
+
+.detalhe code {
+  font-size: 12px;
+  background: var(--fin-surface-2);
+  border: 1px solid var(--fin-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
+}
+
+.tipoChave {
+  font-size: 12px;
+}
+
+.alerta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--fin-bad);
+  font-weight: 600;
+}
+
+.pago {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--fin-good);
+}
+
+.confirmado {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--fin-good);
+}
+
+.sugestao,
+.sugestaoDivergente {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--fin-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--fin-accent) 25%, transparent);
+}
+
+.sugestaoDivergente {
+  background: var(--fin-warn-soft);
+  border-color: color-mix(in srgb, var(--fin-warn) 30%, transparent);
+}
+
+.desfazer {
+  margin-top: 8px;
+}
+
+.botaoLink {
+  font: inherit;
+  font-size: 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--fin-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- painel do QR ---- */
+.qrPainel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-left: 1px dashed var(--fin-border-strong);
+  padding-left: 20px;
+}
+
+.qr {
+  width: 220px;
+  max-width: 100%;
+  background: #fff;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--fin-border);
+  line-height: 0;
+}
+
+.qr svg {
+  width: 100%;
+  height: auto;
+}
+
+.qrValor {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.semQr {
+  font-size: 13px;
+  color: var(--fin-bad);
+  text-align: center;
+  padding: 16px 8px;
+  border: 1px dashed var(--fin-border-strong);
+  border-radius: 8px;
+}
+
+.botaoCopiar {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--fin-border-strong);
+  background: var(--fin-surface);
+  color: var(--fin-text);
+  cursor: pointer;
+}
+
+.botaoCopiar:hover {
+  background: var(--fin-surface-2);
+}
+
+.formPago {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fin-border);
+}
+
+.formPago button {
+  grid-column: 1 / -1;
+}
+
+.campoPequeno {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fin-muted);
+}
+
+.campoPequeno input,
+.campoPequeno select {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--fin-text);
+  padding: 6px 7px;
+  border: 1px solid var(--fin-border-strong);
+  border-radius: 6px;
+  background: var(--fin-surface);
+  min-width: 0;
+}
+
+.tabelaRolagem {
+  overflow-x: auto;
+}
+
+.tabelaRolagem th,
+.tabelaRolagem td {
+  padding-right: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qrPainel {
+    border-left: none;
+    border-top: 1px dashed var(--fin-border-strong);
+    padding-left: 0;
+    padding-top: 16px;
+  }
+}

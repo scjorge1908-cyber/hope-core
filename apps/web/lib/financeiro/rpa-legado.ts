@@ -17,7 +17,26 @@
 // igual ao Apps Script. O teto de 2026 é 8475.55 (tabela inss_ceilings).
 // Não foi trocado aqui para o relatório bater 100% com o atual; trocar
 // nos dois sistemas ao mesmo tempo.
+//
+// ⚠️ NOVO (02/10/2026) — REPASSE DIFERENCIADO PARA SESSÃO DE R$ 33
+//   Igual ao Code.gs de 02/10/2026 (com a correção da carteirinha):
+//   sessão "OK" de R$ 33,00 (coluna N) cuja CARTEIRINHA (coluna L,
+//   cabeçalho "Carterinha") começa com 0025 = Unimed → repasse FIXO de
+//   R$ 18,00 (54,55%, PF). R$ 33 sem carteirinha 0025 continua 40% e
+//   vira alerta. CNPJ, INSS e teto não mudam.
+//   Carteirinha guardada como NÚMERO perdeu os zeros (0025… → 25…):
+//   devolvemos os dois zeros antes de comparar, como no Code.gs.
+//   A coluna da carteirinha é escolhida pelo cabeçalho DENTRO do banco
+//   (legacy_rpa_base, migration 028): 1º cabeçalho com "CART", senão a
+//   coluna L. Chega aqui como 4º item de cada linha.
 // ================================================================
+
+// ⚠️ NOVO — parâmetros do repasse diferenciado (iguais ao Code.gs)
+export const RPA_PERCENTUAL_PADRAO = 0.4
+export const RPA_VALOR_SESSAO_ESPECIAL = 33
+export const RPA_REPASSE_SESSAO_ESPECIAL = 18 // R$ 18,00 fixo por sessão de R$ 33 Unimed (54,55%)
+export const RPA_PLANO_SESSAO_ESPECIAL = 'UNIMED'
+export const RPA_PREFIXO_CARTEIRINHA_UNIMED = '0025' // carteirinha Unimed começa com 0025
 
 /** Célula como chega do banco: número, texto, booleano ou data marcada. */
 export type CelulaLegado = string | number | boolean | null | { $date: string }
@@ -29,8 +48,11 @@ export type PsicologaLegado = {
   pixKey: string
   ultimaSincronizacao: string | null
   ultimoErro: string | null
-  /** cada linha = [coluna A, coluna N, coluna S] */
-  linhas: [CelulaLegado, CelulaLegado, CelulaLegado][]
+  /**
+   * cada linha = [coluna A, coluna N, coluna S, carteirinha (coluna L)].
+   * O 4º item pode faltar em dados antigos (antes da migration 028).
+   */
+  linhas: [CelulaLegado, CelulaLegado, CelulaLegado, CelulaLegado?][]
 }
 
 export type BaseRpaLegado = {
@@ -51,6 +73,12 @@ export type ResultadoIndividual = {
   qtdPacientes: number
   qtdPendencias: number
   totalFaturamento: number
+  // ⚠️ NOVO — detalhamento das sessões de R$ 33
+  qtdSessoes33: number
+  totalProducao33: number
+  comissaoSessoes33: number
+  comissaoPadrao: number
+  qtdSessoes33SemUnimed: number
 }
 
 export type LinhaRelatorio =
@@ -179,6 +207,41 @@ export function mapaIsencoes(exencoes: BaseRpaLegado['exencoes']): Record<string
 }
 
 // =======================================================
+// ⚠️ NOVO — AUXILIARES DA TRAVA UNIMED (iguais ao Code.gs)
+// =======================================================
+
+/** Maiúsculas e sem acentos (_rpaNormalizarTexto_). */
+export function rpaNormalizarTexto(t: unknown): string {
+  return String(t === null || t === undefined ? '' : t)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim()
+}
+
+/**
+ * Índice (base 0) da coluna da carteirinha pelo cabeçalho — a MESMA regra
+ * do banco (legacy_rpa_base, migration 028) e do Code.gs corrigido:
+ * 1º cabeçalho que contém "CART" ("Carterinha"/"Carteirinha"); senão L (11).
+ */
+export function indiceCarteirinha(cabecalho: unknown[]): number {
+  const i = cabecalho.map(rpaNormalizarTexto).findIndex((h) => h.indexOf('CART') !== -1)
+  return i === -1 ? 11 : i
+}
+
+/**
+ * Verdadeiro se a carteirinha começa com 0025 (Unimed) — _rpaCarteirinhaUnimed_.
+ * Texto: só os dígitos. Número: a planilha tirou os zeros da frente
+ * (0025… virou 25…), então devolve os dois zeros antes de comparar.
+ */
+export function rpaCarteirinhaUnimed(valor: CelulaLegado | undefined): boolean {
+  if (valor === null || valor === undefined || valor === '') return false
+  if (typeof valor === 'object') return false // data: nunca é carteirinha
+  const digitos = typeof valor === 'number' ? '00' + String(Math.trunc(Math.abs(valor))) : String(valor).replace(/\D/g, '')
+  return digitos.indexOf(RPA_PREFIXO_CARTEIRINHA_UNIMED) === 0
+}
+
+// =======================================================
 // calcularIndividual() — cópia fiel. `linhas` = [col A, col N, col S].
 // =======================================================
 export function calcularIndividual(
@@ -198,10 +261,17 @@ export function calcularIndividual(
   let contagemPacientes = 0
   let contagemPendencias = 0
 
+  // ⚠️ NOVO — acumuladores das sessões de R$ 33 Unimed (repasse fixo R$ 18,00)
+  let totalProducao33 = 0
+  let contagemSessoes33 = 0
+  let comissaoSessoes33 = 0
+  let comissaoPadraoRetorno = 0
+  let contagemSessoes33SemUnimed = 0
+
   const isIsenta = Object.prototype.hasOwnProperty.call(isencaoMap, idPlanilha)
   const percentualIsenta = isIsenta ? Number(isencaoMap[idPlanilha]) : 0
 
-  for (const [celA, celN, celS] of linhas) {
+  for (const [celA, celN, celS, celCarteirinha] of linhas) {
     const dataRegistro = comoValorAppsScript(celA)
     const valorCheio = extrairValorMonetario(comoValorAppsScript(celN))
     const status = String(comoValorAppsScript(celS) || '').trim() // coluna S
@@ -229,6 +299,18 @@ export function calcularIndividual(
       if (statusNormalizado === 'OK') {
         totalProducao100 += valorCheio
         contagemPacientes++
+
+        // ⚠️ NOVO — sessão de R$ 33: só recebe R$ 18,00 fixo se a carteirinha for Unimed (0025)
+        if (Math.abs(valorCheio - RPA_VALOR_SESSAO_ESPECIAL) < 0.009) {
+          if (rpaCarteirinhaUnimed(celCarteirinha)) {
+            totalProducao33 += valorCheio
+            contagemSessoes33++
+            comissaoSessoes33 += RPA_REPASSE_SESSAO_ESPECIAL
+          } else {
+            // R$ 33 de outro plano: continua nos 40% e vira alerta
+            contagemSessoes33SemUnimed++
+          }
+        }
       } else if (status === '') {
         contagemPendencias++
       }
@@ -249,7 +331,11 @@ export function calcularIndividual(
     retencaoInss = 0
   } else {
     // Para PF: 40% com desconto de INSS
-    const comissao40 = Number((totalProducao100 * 0.4).toFixed(2))
+    // ⚠️ NOVO — sessões de R$ 33 Unimed recebem R$ 18,00 fixo; as demais, 40%
+    const totalProducaoPadrao = totalProducao100 - totalProducao33
+    const comissaoPadrao = Number((totalProducaoPadrao * RPA_PERCENTUAL_PADRAO).toFixed(2))
+    comissaoPadraoRetorno = comissaoPadrao
+    const comissao40 = Number((comissaoPadrao + comissaoSessoes33).toFixed(2))
     baseCalculoRPA = comissao40
     repasseBruto = comissao40
 
@@ -273,6 +359,12 @@ export function calcularIndividual(
     qtdPacientes: contagemPacientes,
     qtdPendencias: contagemPendencias,
     totalFaturamento: totalProducao100,
+    // ⚠️ NOVO — detalhamento das sessões de R$ 33
+    qtdSessoes33: contagemSessoes33,
+    totalProducao33: Number(totalProducao33.toFixed(2)),
+    comissaoSessoes33: Number(comissaoSessoes33.toFixed(2)),
+    comissaoPadrao: comissaoPadraoRetorno,
+    qtdSessoes33SemUnimed: contagemSessoes33SemUnimed,
   }
 }
 
@@ -301,6 +393,10 @@ export function processarRelatorio(base: BaseRpaLegado, mesNome: string, anoAlvo
       const resultado = calcularIndividual(psi.id, psi.linhas, mesNome, anoAlvo, isencaoMap)
       relatorioFinal.push({ id: psi.id, nome: psi.nomeCompleto, pixKey: psi.pixKey, ...resultado, erro: false })
       logs.push(`✅ ${psi.nomeCompleto}: Sucesso`)
+      // ⚠️ NOVO — alerta de sessão de R$ 33 que não é Unimed
+      if (resultado.qtdSessoes33SemUnimed > 0) {
+        logs.push(`⚠️ ${psi.nomeCompleto}: ${resultado.qtdSessoes33SemUnimed} sessão(ões) de R$ 33 SEM plano Unimed — calculadas a 40%. Conferir.`)
+      }
     } catch (e) {
       const msg = (e as Error).message
       relatorioFinal.push({ id: psi.id, nome: psi.nomeCompleto, pixKey: psi.pixKey, erro: true, msg })

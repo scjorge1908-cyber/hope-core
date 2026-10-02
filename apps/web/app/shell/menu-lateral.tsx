@@ -43,6 +43,7 @@ export const GRUPOS: Grupo[] = [
       { href: '/financeiro/dre', label: 'DRE', icone: '🧮' },
       { href: '/financeiro/projecao', label: 'Projeção', icone: '🔮' },
       { href: '/financeiro/repasse', label: 'RPA / Repasse', icone: '💰' },
+      { href: '/financeiro/pagamentos', label: 'Pagamentos de repasse', icone: '💸' },
       { href: '/financeiro/importar', label: 'Importar XML', icone: '⬆️' },
       { href: '/financeiro/notas', label: 'Notas fiscais', icone: '🧾' },
     ],

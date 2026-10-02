@@ -281,6 +281,30 @@ export type BankSugestaoRow = {
   diferenca: Num
 }
 
+// migration 028 — pagamentos de repasse
+export type RepassePagamentoRow = {
+  id: string
+  tenant_id: string
+  competencia: string
+  spreadsheet_id: string
+  psicologa_nome: string
+  tipo: 'PF' | 'CNPJ'
+  valor_pago: Num
+  pago: boolean
+  data_pagamento: string | null
+  forma: 'pix_qrcode' | 'pix_copia_cola' | 'extrato' | 'outro'
+  bank_transaction_id: string | null
+  observacao: string | null
+  marcado_por: string | null
+  marcado_em: string
+  created_at: string
+}
+
+export type RepassePagamentoInsert = Omit<RepassePagamentoRow, 'id' | 'created_at' | 'marcado_em' | 'observacao'> & {
+  observacao?: string | null
+  marcado_em?: string
+}
+
 export type FinanceDatabase = {
   __InternalSupabase: { PostgrestVersion: '14.5' }
   public: {
@@ -308,6 +332,13 @@ export type FinanceDatabase = {
       bank_transactions: { Row: BankTransactionRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
       bank_matches: { Row: BankMatchRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
       bank_sync: { Row: BankSyncRow; Insert: NoInsert; Update: NoInsert; Relationships: [] }
+      // migration 028 — pagamentos de repasse
+      repasse_pagamentos: {
+        Row: RepassePagamentoRow
+        Insert: RepassePagamentoInsert
+        Update: Partial<RepassePagamentoInsert>
+        Relationships: []
+      }
       users: {
         Row: { id: string; tenant_id: string; role: string; active: boolean }
         Insert: NoInsert

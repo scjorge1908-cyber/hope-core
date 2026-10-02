@@ -13,6 +13,7 @@ const ITENS: Item[] = [
   { href: '/financeiro/importar', label: 'Importar XML' },
   { href: '/financeiro/notas', label: 'Notas fiscais' },
   { href: '/financeiro/repasse', label: 'Repasse (RPA)' },
+  { href: '/financeiro/pagamentos', label: 'Pagamentos (Pix)' },
   { href: '/financeiro/guias', label: 'Registro de Guias', comum: true },
   { href: '/financeiro/divergencias', label: 'Divergências' },
   { href: '/financeiro/conferencia', label: 'Conferência de guias' },
