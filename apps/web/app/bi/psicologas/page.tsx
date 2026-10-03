@@ -3,6 +3,8 @@ import { carregarBi, lerFiltros } from '@/lib/bi/carregar'
 import { opcoesFiltro, psicologas } from '@/lib/bi/bi'
 import { BarraFiltros } from '../componentes'
 import { AvisoSync } from '../aviso-sync'
+import { motorCentralAtivo, type FechamentoMotor } from '@/lib/financeiro/motor'
+import { createFinanceClient } from '@/lib/financeiro/server'
 import s from '../../financeiro/financeiro.module.css'
 import b from '../bi.module.css'
 
@@ -19,6 +21,27 @@ export default async function BiPsicologas({ searchParams }: PageProps<'/bi/psic
   const { erro, base, bruto } = await carregarBi()
   if (!base || !bruto) return <div className={s.alertBad}>Não foi possível carregar: {erro}</div>
   const r = psicologas(base, f)
+  // FIN_MOTOR=central → faturado, repasse e Parcela Bruta Hope vêm do motor
+  // financeiro central (a partir de 10/2026 não existe 40/60 universal).
+  const central = motorCentralAtivo()
+  if (central) {
+    const supabase = await createFinanceClient()
+    const { data } = await supabase.rpc('fin_fechamento_mes', { p_ano: Number(r.mes.slice(0, 4)), p_mes: Number(r.mes.slice(5, 7)) })
+    const porId = new Map(((data as unknown as FechamentoMotor | null)?.profissionais ?? []).map((m) => [m.spreadsheet_id, m]))
+    if (porId.size) {
+      for (const l of r.linhas) {
+        const m = porId.get(l.sid)
+        l.faturadoNoMes = m ? Number(m.total_bruto) : 0
+        l.faturado40 = m ? Number(m.repasse_bruto) : 0
+        l.faturado60 = m ? Number(m.parcela_hope) : 0
+      }
+      const somar = (k: 'faturadoNoMes' | 'faturado40' | 'faturado60') =>
+        Math.round(r.linhas.reduce((t, l) => t + l[k], 0) * 100) / 100
+      r.totais.faturadoNoMes = somar('faturadoNoMes')
+      r.totais.faturado40 = somar('faturado40')
+      r.totais.faturado60 = somar('faturado60')
+    }
+  }
   const mesNome = `${MESES[Number(r.mes.slice(5, 7)) - 1]}/${r.mes.slice(0, 4)}`
 
   return (
@@ -45,8 +68,8 @@ export default async function BiPsicologas({ searchParams }: PageProps<'/bi/psic
                 <th>Atend. no mês</th>
                 <th>Faturamento projetado</th>
                 <th>Faturado no mês</th>
-                <th>40% psicóloga</th>
-                <th>60% clínica</th>
+                <th>{central ? 'Repasse bruto profissional' : '40% psicóloga'}</th>
+                <th>{central ? 'Parcela Bruta Hope' : '60% clínica'}</th>
               </tr>
             </thead>
             <tbody>

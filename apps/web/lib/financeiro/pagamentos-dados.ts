@@ -1,7 +1,8 @@
 import 'server-only'
 import type { createFinanceClient } from './server'
 import type { RepassePagamentoRow } from './db-types'
-import { processarRelatorio, type BaseRpaLegado, type LinhaRelatorio } from './rpa-legado'
+import { processarRelatorio, MESES, type BaseRpaLegado, type LinhaRelatorio } from './rpa-legado'
+import { motorCentralAtivo, motorParaRelatorio, type FechamentoMotor } from './motor'
 import { competenciaDe, type LinhaOk } from './repasse-pagamentos'
 export { ordenarFila, situacaoDe, type Situacao } from './repasse-pagamentos'
 
@@ -31,6 +32,15 @@ export async function carregarRepasseDoMes(supabase: Cliente, mes: string, ano: 
 
   let erro: string | null = null
   let resultado: ReturnType<typeof processarRelatorio> | null = null
+  if (motorCentralAtivo()) {
+    // FIN_MOTOR=central → motor financeiro central (mesmo formato do RPA)
+    const { data: dadosMotor, error: erroMotor } = await supabase.rpc('fin_fechamento_mes', {
+      p_ano: Number(ano),
+      p_mes: MESES.indexOf(mes.toUpperCase() as (typeof MESES)[number]) + 1,
+    })
+    if (erroMotor) erro = erroMotor.message
+    else resultado = motorParaRelatorio(dadosMotor as unknown as FechamentoMotor)
+  } else {
   const { data: base, error: erroBase } = await supabase.rpc('legacy_rpa_base')
   if (erroBase) erro = erroBase.message
   else {
@@ -39,6 +49,7 @@ export async function carregarRepasseDoMes(supabase: Cliente, mes: string, ano: 
     } catch (e) {
       erro = (e as Error).message
     }
+  }
   }
   const comErro = (resultado?.relatorioFinal.filter((d) => d.erro) ?? []) as Extract<LinhaRelatorio, { erro: true }>[]
   const ok = (resultado?.relatorioFinal.filter((d) => !d.erro) ?? []) as LinhaOk[]

@@ -416,6 +416,13 @@ export type FinanceDatabase = {
       bank_ignorar: { Args: { p_tx: string; p_ignorar: boolean }; Returns: undefined }
       bank_sugestoes: { Args: { p_tx: string }; Returns: BankSugestaoRow[] }
       guias_adm_sem_sessao: { Args: { p_de: string; p_ate: string }; Returns: import('./conferencia').LinhaAdmSemSessao[] }
+      // migration 030 — motor financeiro central
+      fin_fechamento_mes: { Args: { p_ano: number; p_mes: number }; Returns: Json }
+      fin_fechamento_foto: { Args: { p_ano: number; p_mes: number }; Returns: Json }
+      fin_alertas_mes: { Args: { p_ano: number; p_mes: number }; Returns: Json }
+      fin_varredura_unimed_33: { Args: never; Returns: Json }
+      fin_pendencias: { Args: never; Returns: Json }
+      fin_fechar_mes: { Args: { p_ano: number; p_mes: number; p_observacao?: string | null }; Returns: string }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

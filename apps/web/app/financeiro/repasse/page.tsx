@@ -2,6 +2,7 @@ import { Titulo } from '../titulo'
 import { requireFinanceAccess } from '@/lib/financeiro/server'
 import { dataBR } from '@/lib/financeiro/format'
 import { MESES, processarRelatorio, type BaseRpaLegado, type LinhaRelatorio, type TipoRelatorio } from '@/lib/financeiro/rpa-legado'
+import { motorCentralAtivo, motorParaRelatorio, type FechamentoMotor } from '@/lib/financeiro/motor'
 import { BotaoImprimir } from './botao-imprimir'
 import { BotaoSincronizar } from '../sincronizar/botao-sincronizar'
 import { marcarDesligada } from './actions'
@@ -36,7 +37,15 @@ export default async function RepassePage({ searchParams }: PageProps<'/financei
 
   let resultado: ReturnType<typeof processarRelatorio> | null = null
   let erro: string | null = null
-  if (gerar) {
+  if (gerar && motorCentralAtivo()) {
+    // FIN_MOTOR=central → motor financeiro central (mesmo formato do RPA)
+    const { data, error } = await supabase.rpc('fin_fechamento_mes', {
+      p_ano: Number(ano),
+      p_mes: MESES.indexOf(mes as (typeof MESES)[number]) + 1,
+    })
+    if (error) erro = error.message
+    else resultado = motorParaRelatorio(data as unknown as FechamentoMotor)
+  } else if (gerar) {
     const { data, error } = await supabase.rpc('legacy_rpa_base')
     if (error) erro = error.message
     else {

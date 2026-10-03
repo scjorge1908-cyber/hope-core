@@ -182,6 +182,7 @@ function preparar() {
   psql(['-d', 'postgres', '-c', 'drop database if exists motor_diff', '-c', 'create database motor_diff'])
   psql(['-d', 'motor_diff', '-f', join(__dirname, 'sql/stub_supabase_local.sql')])
   psql(['-d', 'motor_diff', '-f', join(RAIZ, 'supabase/migrations/20261003100000_migration_030_motor_financeiro.sql')])
+  psql(['-d', 'motor_diff', '-f', join(RAIZ, 'supabase/migrations/20261003110000_migration_031_motor_desempenho.sql')])
   execFileSync(
     'psql',
     [...PG!.split(' ').filter(Boolean), '-v', 'ON_ERROR_STOP=1', '-d', 'motor_diff', '-f', join(RAIZ, 'supabase/tests/fin_motor_testes.sql')],
@@ -318,5 +319,7 @@ describe('migration_030', () => {
   it('não contém a palavra bloqueada pelo conector do Supabase', () => {
     const sql = readFileSync(join(RAIZ, 'supabase/migrations/20261003100000_migration_030_motor_financeiro.sql'), 'utf8')
     expect(/delete/i.test(sql)).toBe(false)
+    const sql31 = readFileSync(join(RAIZ, 'supabase/migrations/20261003110000_migration_031_motor_desempenho.sql'), 'utf8')
+    expect(/delete/i.test(sql31)).toBe(false)
   })
 })
