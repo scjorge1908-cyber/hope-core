@@ -4,12 +4,20 @@
 |---|---|
 | Fase atual | AGENDA-FIT-01 — Fit-gap HopeCore × agenda real |
 | Número da ordem | ORDEM-003 |
-| Status | **EMITIDA — aguardando execução do Claude/Core** |
+| Status | **ENTREGA-003 disponível — aguardando revisão do Orquestrador CX** |
 | Implementação autorizada | **NÃO** |
 | Última entrega aceita | `entregas/ENTREGA-002-VALIDACAO-IDENTIDADE-AMBIENTE-PGF.md` |
+| Última entrega recebida | `entregas/ENTREGA-003-AGENDA-FIT-01-FIT-GAP-MODELO-AGENDA.md` |
 | Ordem atual | `ordens/ORDEM-003-AGENDA-FIT-01-FIT-GAP-MODELO-AGENDA.md` |
-| Próxima ação | **Claude/Core executar ORDEM-003 em modo somente leitura** |
+| Próxima ação | **CX revisar a ENTREGA-003 e emitir a próxima ordem** |
 | Atualizado em | 2026-10-03 (America/Sao_Paulo) |
+
+## Resultado resumido da ENTREGA-003
+
+- 97% dos horários com paciente cabem no modelo atual após ajustes determinísticos; 0 tabelas novas justificadas.
+- Achado crítico de dado: `legado.agenda.horario` com deslocamento fixo (~+4h53) no espelho.
+- Lacunas reais (todas por ajuste): índice `idx_sessions_unique_appointment`, duração/fim, exceção por data, constraint anti-sobreposição.
+- `PENDENTE — DECISÃO DE JORGE`: duração 50×60, sublocação na agenda, falta×justificado, motivo de encerramento.
 
 ## Decisão CX sobre ENTREGA-002
 
