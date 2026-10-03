@@ -109,6 +109,48 @@ export type DivergenciaUnimed = {
   valor_esperado: number
 }
 
+/** Um mês do resumo anual (visão da clínica) — fin_resumo_ano(). */
+export type MesResumo = {
+  competencia: string
+  qtd_ok: number
+  qtd_pendencias: number
+  qtd_erro: number
+  total_bruto: number
+  repasse_bruto: number
+  inss: number
+  liquido: number
+  parcela_hope: number
+  qtd_unimed33: number
+  divergencias_unimed: number
+  profissionais_a_pagar: number
+  pago: number
+  profissionais_pagos: number
+  foto: {
+    qtd_ok: number
+    total_bruto: number
+    repasse_bruto: number
+    inss: number
+    liquido: number
+    parcela_hope: number
+    fechado_em: string
+  } | null
+}
+
+/** Situação de um mês no resumo anual. */
+export function situacaoMes(m: MesResumo, hojeCompetencia: string): { texto: string; tipo: 'bom' | 'ruim' | 'atencao' | 'neutro' } {
+  const dif = (a: number, b: number) => Math.abs(Number(a) - Number(b)) > 0.004
+  if (m.competencia > hojeCompetencia) return { texto: 'Futuro', tipo: 'neutro' }
+  if (m.competencia === hojeCompetencia) return { texto: 'Em andamento', tipo: 'neutro' }
+  if (m.qtd_erro > 0) return { texto: 'Planilha com erro de leitura', tipo: 'ruim' }
+  if (m.foto && (dif(m.foto.liquido, m.liquido) || dif(m.foto.total_bruto, m.total_bruto)))
+    return { texto: 'Fechado — mudou depois do fechamento', tipo: 'ruim' }
+  const pendente = Number(m.liquido) - Number(m.pago)
+  if (Number(m.liquido) > 0 && Number(m.pago) > 0 && pendente > 0.004) return { texto: m.foto ? 'Fechado — pagamento parcial' : 'Pagamento parcial', tipo: 'atencao' }
+  if (Number(m.liquido) > 0 && Number(m.pago) <= 0) return { texto: m.foto ? 'Fechado — a pagar' : 'Aberto — a pagar', tipo: 'atencao' }
+  if (Number(m.liquido) <= 0) return { texto: 'Sem movimento', tipo: 'neutro' }
+  return { texto: m.foto ? 'Fechado e pago' : 'Pago (mês não fechado)', tipo: m.foto ? 'bom' : 'atencao' }
+}
+
 export type Pendencia = {
   tipo: 'ALTERADO_APOS_FECHAMENTO'
   competencia: string

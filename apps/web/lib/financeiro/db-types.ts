@@ -423,6 +423,8 @@ export type FinanceDatabase = {
       fin_varredura_unimed_33: { Args: never; Returns: Json }
       fin_pendencias: { Args: never; Returns: Json }
       fin_fechar_mes: { Args: { p_ano: number; p_mes: number; p_observacao?: string | null }; Returns: string }
+      // migration 032 — resumo do ano mês a mês
+      fin_resumo_ano: { Args: { p_ano: number }; Returns: Json }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

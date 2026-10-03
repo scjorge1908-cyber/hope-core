@@ -11,6 +11,8 @@ import {
   type FechamentoMotor,
   type FotoFechamento,
   type Pendencia,
+  type MesResumo,
+  situacaoMes,
 } from '@/lib/financeiro/motor'
 import { fecharCompetencia } from './actions'
 import s from '../financeiro.module.css'
@@ -56,7 +58,7 @@ export default async function ConciliacaoPage({ searchParams }: PageProps<'/fina
   const competencia = `${ano}-${String(mes).padStart(2, '0')}-01`
   const erroAcao = typeof sp.erro === 'string' ? sp.erro : null
 
-  const [motorR, fotoR, alertasR, varreduraR, pendR, baseR, pagR] = await Promise.all([
+  const [motorR, fotoR, alertasR, varreduraR, pendR, baseR, pagR, anoR] = await Promise.all([
     supabase.rpc('fin_fechamento_mes', { p_ano: ano, p_mes: mes }),
     supabase.rpc('fin_fechamento_foto', { p_ano: ano, p_mes: mes }),
     supabase.rpc('fin_alertas_mes', { p_ano: ano, p_mes: mes }),
@@ -64,6 +66,7 @@ export default async function ConciliacaoPage({ searchParams }: PageProps<'/fina
     supabase.rpc('fin_pendencias'),
     supabase.rpc('legacy_rpa_base'),
     supabase.from('repasse_pagamentos').select('spreadsheet_id, valor_pago, pago, data_pagamento').eq('competencia', competencia),
+    supabase.rpc('fin_resumo_ano', { p_ano: ano }),
   ])
 
   if (motorR.error) {
@@ -140,6 +143,13 @@ export default async function ConciliacaoPage({ searchParams }: PageProps<'/fina
   const contagemAlertas = new Map<string, number>()
   for (const a of alertas) for (const c of a.alertas) contagemAlertas.set(c, (contagemAlertas.get(c) ?? 0) + 1)
 
+  // Resumo do ano (visão da clínica), mês a mês
+  const resumoAno = ((anoR.data ?? []) as unknown as MesResumo[])
+  const hojeCompetencia = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-01`
+  const somaAno = (k: 'qtd_ok' | 'total_bruto' | 'parcela_hope' | 'repasse_bruto' | 'inss' | 'liquido' | 'pago') =>
+    r2(resumoAno.reduce((t, m) => t + Number(m[k] || 0), 0))
+  const COR_SIT = { bom: s.badgeGood, ruim: s.badgeBad, atencao: s.badgeWarn, neutro: s.badge }
+
   const mesEncerrado = competencia < `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-01`
 
   return (
@@ -174,6 +184,97 @@ export default async function ConciliacaoPage({ searchParams }: PageProps<'/fina
       {erroAcao && <div className={s.alertBad}>{erroAcao}</div>}
       {sp.fechado === '1' && <div className={s.alertGood}>Competência fechada: a foto foi gravada.</div>}
       {erroLegado && <div className={s.alertWarn}>Não foi possível calcular o RPA atual para comparar: {erroLegado}</div>}
+
+      <section className={s.section}>
+        <h2 className={s.sectionTitle}>Mês a mês — visão da clínica — {ano}</h2>
+        <form className={s.formRow} method="get" style={{ marginBottom: 12 }}>
+          <input type="hidden" name="mes" value={mes} />
+          <label className={s.field}>
+            Ano
+            <select name="ano" defaultValue={ano}>
+              {Array.from({ length: Math.max(1, agora.getFullYear() - 2024 + 1) }, (_, i) => agora.getFullYear() - i).map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className={s.button} type="submit">
+            Ver ano
+          </button>
+        </form>
+        {anoR.error ? (
+          <div className={s.alertWarn}>Resumo do ano indisponível: {anoR.error.message}</div>
+        ) : (
+          <div className={s.tableWrap}>
+            <table className={s.table}>
+              <thead>
+                <tr>
+                  <th>Mês</th>
+                  <th className={s.num}>Atendimentos OK</th>
+                  <th className={s.num}>Faturamento bruto</th>
+                  <th className={s.num}>Parcela Bruta Hope</th>
+                  <th className={s.num}>Repasse bruto (profissionais)</th>
+                  <th className={s.num}>INSS retido</th>
+                  <th className={s.num}>Líquido a pagar</th>
+                  <th className={s.num}>Pago</th>
+                  <th className={s.num}>Falta pagar</th>
+                  <th>Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumoAno.map((m) => {
+                  const n = Number(m.competencia.slice(5, 7))
+                  const sit = situacaoMes(m, hojeCompetencia)
+                  const falta = r2(Math.max(0, Number(m.liquido) - Number(m.pago)))
+                  const vazio = m.competencia > hojeCompetencia && !m.qtd_ok
+                  return (
+                    <tr key={m.competencia} style={n === mes ? { fontWeight: 600 } : undefined}>
+                      <td>
+                        <a className={s.link} href={`/financeiro/conciliacao?ano=${ano}&mes=${n}`}>
+                          {NOMES[n - 1]}
+                        </a>
+                        {m.foto && <span className={s.badgeGood} style={{ marginLeft: 6 }}>fechado</span>}
+                      </td>
+                      <td className={s.num}>{vazio ? '—' : m.qtd_ok}</td>
+                      <td className={s.num}>{vazio ? '—' : brl(m.total_bruto)}</td>
+                      <td className={s.numGood}>{vazio ? '—' : brl(m.parcela_hope)}</td>
+                      <td className={s.num}>{vazio ? '—' : brl(m.repasse_bruto)}</td>
+                      <td className={s.num}>{vazio ? '—' : brl(m.inss)}</td>
+                      <td className={s.num}>{vazio ? '—' : brl(m.liquido)}</td>
+                      <td className={s.num}>{vazio ? '—' : brl(m.pago)}</td>
+                      <td className={falta > 0 && m.competencia < hojeCompetencia ? s.numBad : s.num}>{vazio ? '—' : brl(falta)}</td>
+                      <td>
+                        <span className={COR_SIT[sit.tipo]}>{sit.texto}</span>
+                        {m.divergencias_unimed > 0 && <div className={s.muted}>{m.divergencias_unimed} Unimed com valor ≠ R$ 33</div>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total {ano}</td>
+                  <td className={s.num}>{somaAno('qtd_ok')}</td>
+                  <td className={s.num}>{brl(somaAno('total_bruto'))}</td>
+                  <td className={s.num}>{brl(somaAno('parcela_hope'))}</td>
+                  <td className={s.num}>{brl(somaAno('repasse_bruto'))}</td>
+                  <td className={s.num}>{brl(somaAno('inss'))}</td>
+                  <td className={s.num}>{brl(somaAno('liquido'))}</td>
+                  <td className={s.num}>{brl(somaAno('pago'))}</td>
+                  <td className={s.num}>{brl(r2(Math.max(0, somaAno('liquido') - somaAno('pago'))))}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+        <p className={s.sectionNote}>
+          Totais da clínica pelo motor central (competência = coluna A). Faturamento bruto = Parcela Bruta Hope + repasse bruto aos
+          profissionais; o INSS retido sai do repasse e não é receita da Hope. Pago = Pagamentos de repasse marcados como pagos (controle
+          começou em 09/2026). Clique no mês para ver o detalhe.
+        </p>
+      </section>
 
       {ehSetembro && (
         <section className={s.section}>

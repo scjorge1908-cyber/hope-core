@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { motorCentralAtivo, motorParaRelatorio, statusConciliacao, type ProfissionalMotor } from '../motor'
+import { motorCentralAtivo, motorParaRelatorio, situacaoMes, statusConciliacao, type ProfissionalMotor } from '../motor'
 
 const base: ProfissionalMotor = {
   spreadsheet_id: 'id1', profissional: 'Josane Flaviana', nome_abreviado: 'Psi Josane', ordem: 1, ativo: true, desligada: false,
@@ -67,4 +67,21 @@ describe('FIN_MOTOR', () => {
     process.env.FIN_MOTOR = 'legado'
     expect(motorCentralAtivo()).toBe(false)
   })
+})
+
+describe('situacaoMes (resumo anual, visão da clínica)', () => {
+  const m = {
+    competencia: '2026-09-01', qtd_ok: 714, qtd_pendencias: 0, qtd_erro: 0, total_bruto: 32924.5, repasse_bruto: 13169.8,
+    inss: 1290.28, liquido: 11879.52, parcela_hope: 19754.7, qtd_unimed33: 0, divergencias_unimed: 0, profissionais_a_pagar: 17,
+    pago: 8218.26, profissionais_pagos: 8,
+    foto: { qtd_ok: 714, total_bruto: 32924.5, repasse_bruto: 13169.8, inss: 1290.28, liquido: 11879.52, parcela_hope: 19754.7, fechado_em: '' },
+  }
+  it('fechado com pagamento parcial', () => expect(situacaoMes(m, '2026-10-01').texto).toBe('Fechado — pagamento parcial'))
+  it('fechado e pago', () => expect(situacaoMes({ ...m, pago: 11879.52 }, '2026-10-01').tipo).toBe('bom'))
+  it('mudou depois do fechamento', () => expect(situacaoMes({ ...m, liquido: 11900 }, '2026-10-01').tipo).toBe('ruim'))
+  it('mês corrente e futuro', () => {
+    expect(situacaoMes(m, '2026-09-01').texto).toBe('Em andamento')
+    expect(situacaoMes(m, '2026-08-01').texto).toBe('Futuro')
+  })
+  it('aberto a pagar', () => expect(situacaoMes({ ...m, foto: null, pago: 0 }, '2026-10-01').texto).toBe('Aberto — a pagar'))
 })

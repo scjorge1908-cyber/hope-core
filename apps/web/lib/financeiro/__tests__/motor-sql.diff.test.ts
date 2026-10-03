@@ -183,6 +183,7 @@ function preparar() {
   psql(['-d', 'motor_diff', '-f', join(__dirname, 'sql/stub_supabase_local.sql')])
   psql(['-d', 'motor_diff', '-f', join(RAIZ, 'supabase/migrations/20261003100000_migration_030_motor_financeiro.sql')])
   psql(['-d', 'motor_diff', '-f', join(RAIZ, 'supabase/migrations/20261003110000_migration_031_motor_desempenho.sql')])
+  psql(['-d', 'motor_diff', '-f', join(RAIZ, 'supabase/migrations/20261003120000_migration_032_motor_resumo_ano.sql')])
   execFileSync(
     'psql',
     [...PG!.split(' ').filter(Boolean), '-v', 'ON_ERROR_STOP=1', '-d', 'motor_diff', '-f', join(RAIZ, 'supabase/tests/fin_motor_testes.sql')],
@@ -233,6 +234,26 @@ describe.skipIf(!PG)('motor financeiro (SQL) = RPA para meses até 09/2026', { t
       expect(comparados).toBeGreaterThan(30)
     })
   }
+
+  it('fechamento do período (ano) = soma dos meses, mês a mês', () => {
+    const planilhas = gerar(3)
+    const tenant = carregarNoBanco(planilhas)
+    const periodo = JSON.parse(
+      psql(['-d', 'motor_diff', '-c', `select coalesce(jsonb_agg(to_jsonb(f)), '[]') from public.fin__fechamento_periodo('${tenant}', '2026-01-01', '2026-12-01') f`])
+    ) as (LinhaMotor & { competencia: string })[]
+    for (let mes = 1; mes <= 12; mes++) {
+      const comp = `2026-${String(mes).padStart(2, '0')}-01`
+      const doMes = JSON.parse(
+        psql(['-d', 'motor_diff', '-c', `select coalesce(jsonb_agg(to_jsonb(m)), '[]') from public.fin__fechamento_mes('${tenant}', '${comp}') m`])
+      ) as LinhaMotor[]
+      const doPeriodo = periodo.filter((x) => x.competencia === comp).map((x) => {
+        const resto: Record<string, unknown> = { ...x }
+        delete resto.competencia
+        return resto
+      })
+      expect(doPeriodo, comp).toEqual(doMes)
+    }
+  })
 
   it('o caso que estoura o teto existe nos dados gerados (cobre INSS v1)', () => {
     const planilhas = gerar(1)
