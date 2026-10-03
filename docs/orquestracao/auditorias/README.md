@@ -6,3 +6,4 @@
 |---|---|---|---|---|
 | AUD-001 | 2026-10-03 | Auditoria técnica, SaaS e segurança — Entrega 1 (16 itens) | Com o Owner, fora do repositório (arquivo RESTRITO entregue no chat) | Aguardando `APROVAR FASE DE CORREÇÃO` |
 | AUD-002 | 2026-10-03 | Achados restritos da ARQ-PSI-01 (Psi Gestão Fácil e disponibilidade do site) | Com o Owner, fora do repositório (arquivo RESTRITO entregue no chat) | Aguardando revisão; correção só por nova ordem |
+| AUD-002-A1 | 2026-10-03 | Complemento da ORDEM-002 (verificação de ambiente do PGF) | Com o Owner, fora do repositório | Gate pendente (respostas do Owner) |

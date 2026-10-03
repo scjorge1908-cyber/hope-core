@@ -4,29 +4,29 @@
 |---|---|
 | Fase atual | ORDEM-002 — Validação de identidade e ambiente do Psi Gestão Fácil |
 | Número da ordem | ORDEM-002 |
-| Status | **EMITIDA — aguardando execução do Claude/Core** |
+| Status | **ENTREGA-002 disponível — aguardando revisão do Orquestrador CX** |
 | Implementação autorizada | **NÃO** |
-| Última entrega recebida | `entregas/ENTREGA-001-ARQ-PSI-01-CONVERGENCIA.md` |
-| Ordem atual | `ordens/ORDEM-002-VALIDACAO-IDENTIDADE-AMBIENTE-PGF.md` |
-| Próxima ação | **Claude/Core executar ORDEM-002 em modo somente leitura** |
+| Última entrega | `entregas/ENTREGA-002-VALIDACAO-IDENTIDADE-AMBIENTE-PGF.md` |
+| Ordem atual | `ordens/ORDEM-002-VALIDACAO-IDENTIDADE-AMBIENTE-PGF.md` (executada) |
+| Próxima ação | **AGUARDAR REVISÃO DO ORQUESTRADOR CX** |
 | Atualizado em | 2026-10-03 (America/Sao_Paulo) |
 
 ## Bloqueios / gates
 
-1. **Identidade do Psi Gestão Fácil:** precisa ser comprovada antes de qualquer implementação derivada da ENTREGA-001.
-2. **Segurança PGF:** SEC-PGF-01/02 precisam ser reclassificados conforme publicação e existência de dados reais.
-3. **Repositório público:** relatórios RESTRITOS permanecem fora dele.
-4. **Auditoria AUD-001:** fase de correção permanece sem autorização nesta frente.
-5. **Motor financeiro:** não alterar `FIN_MOTOR` nesta ordem.
-6. **Bradesco:** fora do escopo desta ordem.
+1. **Identidade do Psi Gestão Fácil:** repositório = snapshot do AI Studio de 15/06/2026 [C]. Versão vigente, deploy e nome não comprovados. Depende de 3 respostas do Owner (ENTREGA-002, seção 7).
+2. **Segurança PGF:** SEC-PGF-01/02 reclassificados para **SEC-P1 provisório (gate pendente)**. Viram P0 imediato se o banco tiver dados reais, ou P3 se vazio/teste.
+3. **Repositório público:** relatórios RESTRITOS permanecem fora dele (AUD-001, AUD-002, AUD-002-A1).
+4. **Auditoria AUD-001:** a fase de correção segue sem autorização nesta frente.
+5. **Motor financeiro:** `FIN_MOTOR` inalterado.
+6. **Bradesco:** fora do escopo.
 
 ## Frentes
 
 | Frente | Estado | Implementação autorizada |
 |---|---|---|
-| ARQ-PSI-01 | ENTREGA-001 recebida e revisada pelo CX | NÃO |
-| ORDEM-002 | Emitida; aguardando Claude/Core | NÃO |
-| Segurança PGF | Gate de validação | NÃO |
+| ARQ-PSI-01 | ENTREGA-001 revisada pela ENTREGA-002 (correções na seção 5) | NÃO |
+| ORDEM-002 | ENTREGA-002 disponível | NÃO |
+| Segurança PGF | Gate: aguardando respostas do Owner | NÃO |
 | Motor financeiro central | Mantido no estado atual | Somente o já existente |
 
 ## Governança
