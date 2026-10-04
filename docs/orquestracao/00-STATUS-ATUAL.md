@@ -3,14 +3,14 @@
 | Campo | Valor |
 |---|---|
 | Fase atual | CONVERGÊNCIA PGF → HOPECORE — Fundação técnica |
-| Número da ordem | ORDEM-005 |
-| Status | **ENTREGA-005 PUBLICADA no GitHub — aguardando validação final do CX** |
-| Implementação autorizada | **SIM, SOMENTE EM BRANCH — SEM DEPLOY/PRODUÇÃO** |
-| Última entrega aceita | `entregas/ENTREGA-DIR-001-MAPA-CONVERGENCIA-PGF-HOPECORE.md` |
+| Número da ordem | ORDEM-006 |
+| Status | **ORDEM-006 EMITIDA — piloto controlado DATA-01 + salas** |
+| Implementação autorizada | **SIM — produção restrita aos passos explícitos da ORDEM-006** |
+| Última entrega aceita | `entregas/ENTREGA-005-CONVERGENCIA-BLOCO-1-FUNDACAO.md` — ACEITA COM GATE DI-01 |
 | Última entrega recebida | `entregas/ENTREGA-005-CONVERGENCIA-BLOCO-1-FUNDACAO.md` |
-| Ordem atual | `ordens/ORDEM-005-CONVERGENCIA-BLOCO-1-FUNDACAO-SEM-DEPLOY.md` |
+| Ordem atual | `ordens/ORDEM-006-PILOTO-CONTROLADO-DATA01-SALAS.md` |
 | Branch do código | `convergencia/bloco-1` — commits `22061dc`…`b83dcc0` (não mesclada em `main`) |
-| Próxima ação | **CX validar os commits publicados e decidir a ORDEM-006**; sem deploy/produção |
+| Próxima ação | Claude/Core executar piloto estritamente conforme ORDEM-006 e retornar ao CX |
 | Atualizado em | 2026-10-03 (America/Sao_Paulo) |
 
 ## Decisão CX
@@ -55,3 +55,10 @@ Nenhuma bloqueia ORDEM-005.
 - Produção **intacta**: nenhuma migration aplicada (última = 032), nenhum sync executado, nenhum deploy, nenhum INSERT/UPDATE/DELETE.
 - **DI-01 (inconsistência de dados, não corrigida):** 2 profissionais inativas na aba ID ainda ocupam salas no painel. Tratar **antes** de executar o bootstrap de `professional_profiles`.
 - Transporte: o git da sessão Claude segue sem credencial para `hope-core` (HTTP 403 no proxy); a publicação foi feita pelo upload web do GitHub.
+
+
+## Decisão CX — ENTREGA-005
+
+**ACEITA COM GATE DI-01.**
+
+ORDEM-006 autorizada para piloto restrito: migration 033 + rooms; migration 034 apenas DDL/dry-run, sem criar perfis; migration 035 + view; DATA-01 em uma única planilha ativa fora de DI-01. FIN_MOTOR, Atendimentos, Auth, RLS, pacientes e sync global permanecem bloqueados.
