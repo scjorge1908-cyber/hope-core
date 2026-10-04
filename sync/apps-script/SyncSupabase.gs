@@ -230,6 +230,9 @@ const SYNC_COLS_CANCELADOS = [0, 1, 2, 3, 5, 8, 9, 13, 15, 16, 27];
 
 function syncEnviarAgendaCancelados_(cfg, psi, ss) {
   const planilha = ss || SpreadsheetApp.openById(psi.id);
+  // DATA-01 (ENTREGA-004): células de data/hora são formatadas no fuso DA PRÓPRIA
+  // planilha (o mesmo em que a psicóloga as vê), não no fuso fixo do script.
+  const fusoPlanilha = planilha.getSpreadsheetTimeZone() || SYNC_FUSO;
   const ler = (nome, cols, ehAgenda) => {
     const aba = planilha.getSheetByName(nome);
     if (!aba) return null;
@@ -237,7 +240,7 @@ function syncEnviarAgendaCancelados_(cfg, psi, ss) {
     const out = [];
     for (let i = 1; i < valores.length; i++) {
       const r = valores[i];
-      const c = cols.map(k => syncNormalizarCelula_(k < r.length ? r[k] : ''));
+      const c = cols.map(k => syncNormalizarCelulaNoFuso_(k < r.length ? r[k] : '', fusoPlanilha));
       const vazia = c.every(x => x === '' || x === null || (typeof x === 'string' && x.trim() === ''));
       if (vazia) continue;
       if (ehAgenda && !r[0] && !r[1]) continue; // sem dia nem horário: não é horário da grade
@@ -306,6 +309,24 @@ function syncNormalizarCelula_(v) {
   if (typeof v === 'number' || typeof v === 'boolean') return v;
   if (v === null || v === undefined) return '';
   return String(v);
+}
+
+/**
+ * DATA-01 (ENTREGA-004): igual a syncNormalizarCelula_, mas formata Date no fuso
+ * informado (o da planilha de origem). Motivo: uma célula só de hora é guardada
+ * pela planilha como 30/12/1899 HH:mm NO FUSO DA PLANILHA; formatá-la em outro
+ * fuso desloca a hora (Pacífico → SP em 1899 = +4h53min32s). Sem constante de
+ * correção: o resultado é exatamente o que a psicóloga vê na planilha.
+ * Texto, número, booleano e vazio seguem syncNormalizarCelula_ (inalterados).
+ * Usada só por Agenda/Cancelados; a aba Atendimentos continua em
+ * syncNormalizarCelula_ (o repasse lê só a DATA, que já chega certa).
+ */
+function syncNormalizarCelulaNoFuso_(v, fuso) {
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return '';
+    return { $date: Utilities.formatDate(v, fuso || SYNC_FUSO, "yyyy-MM-dd'T'HH:mm:ss") };
+  }
+  return syncNormalizarCelula_(v);
 }
 
 /** Envia a aba ExencaoCNPJ (valores crus) e a lista/ordem da aba ID. */
